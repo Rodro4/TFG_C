@@ -1,0 +1,34 @@
+{
+    "name": "VRInputActions",
+    "maps": [
+        {
+            "name": "XRActions",
+            "id": "e74617b9-fad5-4869-87d3-0a06722172c9",
+            "actions": [
+                {
+                    "name": "Move",
+                    "type": "Value",
+                    "id": "1e100a48-e2f3-4ff1-a389-bbe393f13e3f",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "8ca6c6f4-356e-4cbf-a520-4057a728ec60",
+                    "path": "<XRController>{LeftHand}/thumbstick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
