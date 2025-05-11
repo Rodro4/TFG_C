@@ -2,17 +2,36 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    //public GameObject cabinMode;
-    //public GameObject immersiveMode;
-
     private bool isCabinMode = true;
+    private VREyeFeed eyeFeed;
+
+    void Start()
+    {
+        eyeFeed = FindObjectOfType<VREyeFeed>();
+
+        if (eyeFeed == null)
+        {
+            Debug.LogWarning("VREyeFeed no encontrado en la escena.");
+        }
+    }
 
     public void ToggleMode()
     {
         isCabinMode = !isCabinMode;
-        //cabinMode.SetActive(isCabinMode);
-        //immersiveMode.SetActive(!isCabinMode);
-
         Debug.Log("Modo cambiado a: " + (isCabinMode ? "Cabina" : "Inmersivo"));
+
+        if (eyeFeed != null)
+        {
+            eyeFeed.SetImmersiveMode(!isCabinMode);
+        }
+    }
+
+    void Update()
+    {
+        // Botón de emergencia para volver al modo cabina
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            ToggleMode();
+        }
     }
 }

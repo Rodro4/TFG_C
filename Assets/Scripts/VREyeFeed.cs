@@ -1,24 +1,36 @@
 using UnityEngine;
-using UnityEngine.XR;
 
 public class VREyeFeed : MonoBehaviour
 {
-    public MeshRenderer rosImageRenderer; // Arrástrale el MeshRenderer que ya recibe la textura ROS
+    public MeshRenderer rosImageRenderer; // El plano que recibe la textura ROS
 
     private GameObject leftEyeQuad;
     private GameObject rightEyeQuad;
+    private Material eyeMaterial;
+
+    private bool isImmersive = false;
 
     void Start()
     {
         if (rosImageRenderer == null)
         {
-            Debug.LogError("rosImageRenderer no asignado. Debes asignar el MeshRenderer que recibe la textura ROS.");
+            Debug.LogError("rosImageRenderer no asignado.");
             return;
         }
 
-        // Crear los quads
+        eyeMaterial = new Material(Shader.Find("Unlit/Texture"));
         leftEyeQuad = CreateEyeQuad("LeftEyeQuad", new Vector3(-0.03f, 0, 0.15f));
         rightEyeQuad = CreateEyeQuad("RightEyeQuad", new Vector3(0.03f, 0, 0.15f));
+
+        SetQuadsActive(false); // comienza en modo cabina
+    }
+
+    void Update()
+    {
+        if (rosImageRenderer.material.mainTexture != null)
+        {
+            eyeMaterial.mainTexture = rosImageRenderer.material.mainTexture;
+        }
     }
 
     GameObject CreateEyeQuad(string name, Vector3 localPosition)
@@ -26,23 +38,34 @@ public class VREyeFeed : MonoBehaviour
         GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
         quad.name = name;
 
-        // Pegar al XR Camera
         Camera mainCam = Camera.main;
         if (mainCam == null)
         {
-            Debug.LogError("No se encontró la cámara principal (Camera.main). Asegúrate de que tu XR Rig tiene una cámara con el tag MainCamera.");
+            Debug.LogError("No se encontró la cámara principal.");
             return null;
         }
 
         quad.transform.SetParent(mainCam.transform);
         quad.transform.localPosition = localPosition;
         quad.transform.localRotation = Quaternion.identity;
-        quad.transform.localScale = new Vector3(1.8f, 1.8f, 1f); // Ajusta a tu gusto según el FOV
+        quad.transform.localScale = new Vector3(1.5f, 1.5f, 1f);
 
-        // Usar el mismo material que ya tiene la imagen del robot
         MeshRenderer renderer = quad.GetComponent<MeshRenderer>();
-        renderer.material = rosImageRenderer.material;
+        renderer.material = eyeMaterial;
 
         return quad;
+    }
+
+    private void SetQuadsActive(bool active)
+    {
+        if (leftEyeQuad != null) leftEyeQuad.SetActive(active);
+        if (rightEyeQuad != null) rightEyeQuad.SetActive(active);
+    }
+
+    // Este método lo llamará el GameManager
+    public void SetImmersiveMode(bool active)
+    {
+        isImmersive = active;
+        SetQuadsActive(active);
     }
 }
