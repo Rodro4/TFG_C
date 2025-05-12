@@ -2,7 +2,8 @@ using UnityEngine;
 
 public class VREyeFeed : MonoBehaviour
 {
-    public MeshRenderer rosImageRenderer; // El plano que recibe la textura ROS
+    public MeshRenderer rgbRenderer;    // Plano RGB
+    public MeshRenderer depthRenderer;  // Plano Depth
 
     private GameObject leftEyeQuad;
     private GameObject rightEyeQuad;
@@ -12,24 +13,27 @@ public class VREyeFeed : MonoBehaviour
 
     void Start()
     {
-        if (rosImageRenderer == null)
+        if (rgbRenderer == null || depthRenderer == null)
         {
-            Debug.LogError("rosImageRenderer no asignado.");
+            Debug.LogError("No se han asignado los MeshRenderers RGB y/o Depth.");
             return;
         }
 
         eyeMaterial = new Material(Shader.Find("Unlit/Texture"));
+
         leftEyeQuad = CreateEyeQuad("LeftEyeQuad", new Vector3(-0.03f, 0, 0.15f));
         rightEyeQuad = CreateEyeQuad("RightEyeQuad", new Vector3(0.03f, 0, 0.15f));
 
         SetQuadsActive(false); // comienza en modo cabina
+        SetScreenSource(true); // comienza en modo RGB
     }
 
     void Update()
     {
-        if (rosImageRenderer.material.mainTexture != null)
+        Texture currentTexture = GetCurrentTexture();
+        if (currentTexture != null)
         {
-            eyeMaterial.mainTexture = rosImageRenderer.material.mainTexture;
+            eyeMaterial.mainTexture = currentTexture;
         }
     }
 
@@ -62,10 +66,23 @@ public class VREyeFeed : MonoBehaviour
         if (rightEyeQuad != null) rightEyeQuad.SetActive(active);
     }
 
-    // Este método lo llamará el GameManager
     public void SetImmersiveMode(bool active)
     {
         isImmersive = active;
         SetQuadsActive(active);
+    }
+
+    private bool showingRGB = true;
+    public void SetScreenSource(bool useRGB)
+    {
+        showingRGB = useRGB;
+    }
+
+    private Texture GetCurrentTexture()
+    {
+        if (showingRGB)
+            return rgbRenderer.material?.mainTexture;
+        else
+            return depthRenderer.material?.mainTexture;
     }
 }

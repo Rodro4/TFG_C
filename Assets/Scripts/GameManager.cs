@@ -5,6 +5,12 @@ public class GameManager : MonoBehaviour
     private bool isCabinMode = true;
     private VREyeFeed eyeFeed;
 
+    [Header("Pantallas de visualización")]
+    public GameObject rgbScreen;
+    public GameObject depthScreen;
+
+    private bool showingRGB = true;
+
     void Start()
     {
         eyeFeed = FindObjectOfType<VREyeFeed>();
@@ -13,6 +19,8 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogWarning("VREyeFeed no encontrado en la escena.");
         }
+
+        SetScreenState(rgb: true);
     }
 
     public void ToggleMode()
@@ -24,6 +32,22 @@ public class GameManager : MonoBehaviour
         {
             eyeFeed.SetImmersiveMode(!isCabinMode);
         }
+    }
+
+    public void ToggleScreen()
+    {
+        showingRGB = !showingRGB;
+        SetScreenState(showingRGB);
+
+        if (eyeFeed != null)
+            eyeFeed.SetScreenSource(showingRGB);
+    }
+
+    private void SetScreenState(bool rgb)
+    {
+        if (rgbScreen != null) rgbScreen.SetActive(rgb);
+        if (depthScreen != null) depthScreen.SetActive(!rgb);
+        Debug.Log("Pantalla actual: " + (rgb ? "RGB" : "Depth"));
     }
 
     void Update()
