@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using RosSharp.RosBridgeClient;
 
 namespace RosSharp.RosBridgeClient
 {
@@ -10,12 +11,13 @@ namespace RosSharp.RosBridgeClient
 
         private Texture2D texture2D;
         private byte[] imageData;
-        private bool isMessageReceived;
+        private float[] depthValues;
 
         private int imageWidth;
         private int imageHeight;
 
-        private const float maxDepthMeters = 10.0f; // Puedes ajustarlo según tu sensor
+        private bool isMessageReceived = false;
+        private const float maxDepthMeters = 10.0f;
 
         protected override void Start()
         {
@@ -34,45 +36,59 @@ namespace RosSharp.RosBridgeClient
             imageData = image.data;
             imageWidth = (int)image.width;
             imageHeight = (int)image.height;
+
+            int pixelCount = imageWidth * imageHeight;
+            depthValues = new float[pixelCount];
+
+            for (int i = 0; i < pixelCount; i++)
+            {
+                int byteIndex = i * 4;
+                if (byteIndex + 3 >= imageData.Length) break;
+
+                float depth = BitConverter.ToSingle(imageData, byteIndex);
+                depthValues[i] = depth;
+            }
+
             isMessageReceived = true;
         }
 
         private void ProcessMessage()
         {
-            if (imageData == null || imageData.Length == 0)
+            if (depthValues == null || depthValues.Length == 0)
                 return;
 
-            int pixelCount = imageWidth * imageHeight;
-
             if (texture2D == null || texture2D.width != imageWidth || texture2D.height != imageHeight)
-            {
                 texture2D = new Texture2D(imageWidth, imageHeight, TextureFormat.RGBA32, false);
-            }
 
-            Color32[] pixels = new Color32[pixelCount];
+            Color32[] pixels = new Color32[depthValues.Length];
 
-            for (int i = 0; i < pixelCount; i++)
+            for (int i = 0; i < depthValues.Length; i++)
             {
-                int byteIndex = i * 4;
-                if (byteIndex + 3 >= imageData.Length)
-                    break;
+                float depth = depthValues[i];
 
-                float depth = BitConverter.ToSingle(imageData, byteIndex);
-
-                // Evitamos NaN o valores negativos
                 if (float.IsNaN(depth) || depth <= 0f || depth > maxDepthMeters)
                     depth = maxDepthMeters;
 
                 float normalized = Mathf.Clamp01(depth / maxDepthMeters);
-                byte gray = (byte)(normalized * 255);
+                byte gray = (byte)(normalized * 255f);
                 pixels[i] = new Color32(gray, gray, gray, 255);
             }
 
             texture2D.SetPixels32(pixels);
             texture2D.Apply();
-
             meshRenderer.material.mainTexture = texture2D;
+
             isMessageReceived = false;
+        }
+
+        // Método accesible desde otros scripts
+        public float GetDepthAt(int x, int y)
+        {
+            if (depthValues == null || x < 0 || x >= imageWidth || y < 0 || y >= imageHeight)
+                return -1f;
+
+            int index = y * imageWidth + x;
+            return depthValues[index];
         }
     }
 }

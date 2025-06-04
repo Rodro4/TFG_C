@@ -33,10 +33,11 @@ namespace RosSharp.RosBridgeClient
             InitializeMessage();
         }
 
-        private void FixedUpdate()
-        {
-            UpdateMessage();
-        }
+        // Modificado por Rodro
+        //private void FixedUpdate()
+        //{
+        //    UpdateMessage();
+        //}
 
         private void InitializeMessage()
         {
@@ -71,6 +72,17 @@ namespace RosSharp.RosBridgeClient
             geometryQuaternion.y = quaternion.y;
             geometryQuaternion.z = quaternion.z;
             geometryQuaternion.w = quaternion.w;
+        }
+
+        // Modificado por Rodro
+        public void PublishPose(Vector3 position, Quaternion rotation)
+        {
+            message.header.Update();
+
+            GetGeometryPoint(position.Unity2Ros(), message.pose.position);
+            GetGeometryQuaternion(rotation.Unity2Ros(), message.pose.orientation);
+
+            Publish(message);
         }
 
     }
