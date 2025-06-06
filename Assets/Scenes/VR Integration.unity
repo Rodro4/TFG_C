@@ -693,56 +693,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
---- !u!1 &48680158
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 48680160}
-  - component: {fileID: 48680159}
-  m_Layer: 0
-  m_Name: ClickToMapGoal
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &48680159
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 48680158}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8558392757bd6e842a6302ecc7bf5eed, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cam: {fileID: 1962686459}
-  gridSubscriber: {fileID: 978715125}
-  goalPublisher: {fileID: 978715126}
-  mapLayer:
-    m_Bits: 64
-  mapTransform: {fileID: 0}
---- !u!4 &48680160
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 48680158}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 30.26627, y: 21.620102, z: 14.0551}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &50453336
 GameObject:
   m_ObjectHideFlags: 0
@@ -3722,7 +3672,7 @@ GameObject:
   m_Component:
   - component: {fileID: 429978757}
   m_Layer: 0
-  m_Name: ----NO FUNCIONA----
+  m_Name: "----no s\xE9 si funciona----"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9452,6 +9402,10 @@ GameObject:
   - component: {fileID: 978715125}
   - component: {fileID: 978715127}
   - component: {fileID: 978715126}
+  - component: {fileID: 978715128}
+  - component: {fileID: 978715129}
+  - component: {fileID: 978715130}
+  - component: {fileID: 978715131}
   m_Layer: 0
   m_Name: RosConnector
   m_TagString: Untagged
@@ -9472,10 +9426,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selectedRosVersion: 0
-  SecondsTimeout: 1
+  SecondsTimeout: 10
   Serializer: 0
   protocol: 0
-  RosBridgeServerUrl: ws://172.24.13.153:9090
+  RosBridgeServerUrl: ws://172.28.47.210:9090
 --- !u!4 &978715114
 Transform:
   m_ObjectHideFlags: 0
@@ -9637,14 +9591,7 @@ MonoBehaviour:
   Topic: /map
   TimeStep: 0
   EnsureThreadSafety: 0
-  rosConnector: {fileID: 0}
   MapFrame: map
-  mapData: 
-  resolution: 0
-  width: 0
-  height: 0
-  origin: {x: 0, y: 0, z: 0}
-  mapReceived: 0
 --- !u!114 &978715126
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9674,7 +9621,70 @@ MonoBehaviour:
   Topic: /tf
   TimeStep: 0
   EnsureThreadSafety: 0
-  rosConnector: {fileID: 0}
+--- !u!114 &978715128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 978715112}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8558392757bd6e842a6302ecc7bf5eed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pixelPicker: {fileID: 992690402}
+  pixelWorldInfo: {fileID: 1098238644}
+  goalPublisher: {fileID: 978715126}
+--- !u!114 &978715129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 978715112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ee79527cc73605478d6cc5e23651965, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Topic: /cmd_vel_mux/input/teleop
+--- !u!114 &978715130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 978715112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2d217afbfcc10441b3622be60ca2434, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pixelPicker: {fileID: 992690402}
+  pixelWorldInfo: {fileID: 1098238644}
+  twistPublisher: {fileID: 978715129}
+  yawSubscriber: {fileID: 978715131}
+  linearSpeed: 0.2
+  angularSpeed: 0.5
+  angularThresholdDeg: 2
+  stopDelay: 0.1
+  angularKp: 2
+--- !u!114 &978715131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 978715112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63da050617db0054fb59a579f934f500, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Topic: /odom
+  TimeStep: 0
+  EnsureThreadSafety: 0
 --- !u!1 &981944401
 GameObject:
   m_ObjectHideFlags: 8
@@ -22988,4 +22998,3 @@ SceneRoots:
   - {fileID: 429978757}
   - {fileID: 992690401}
   - {fileID: 1098238645}
-  - {fileID: 48680160}

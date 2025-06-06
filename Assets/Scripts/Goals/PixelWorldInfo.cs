@@ -4,10 +4,10 @@ using RosSharp.RosBridgeClient;
 public class PixelWorldInfo : MonoBehaviour
 {
     public DepthImageSubscriber depthImageSubscriber; // Referencia al subscriber depth
-    public int imageWidth = 640;  // Ajusta si tu cámara tiene otro tamaño
+    public int imageWidth = 640;  // Ajusta cámara por si tiene otro tamaño
     public int imageHeight = 480;
 
-    // Parámetros intrínsecos cámara (ajustar a tu cámara)
+    // Parámetros intrínsecos cámara
     public float fx = 554.254691191187f;
     public float fy = 554.254691191187f;
     public float cx = 320.5f;
@@ -47,11 +47,35 @@ public class PixelWorldInfo : MonoBehaviour
         float Y = (y - cy) * depth / fy;
         float Z = depth;
 
-        // Ajusta signo en Y si tu sistema de coordenadas lo requiere
+        // Ajusta signo en Y si tu sistema de coordenadas lo requiere (revisar)
         Vector3 pointCamera = new Vector3(X, -Y, Z);
 
         Debug.Log($"Pixel ({X},{Y}) -> Profundidad = {depth:F3} m -> Punto 3D cámara = {pointCamera}");
     }
+
+    public Vector3? GetWorldCoordinates(int x, int y)
+    {
+        if (depthImageSubscriber == null)
+            return null;
+
+        if (x < 0 || x >= imageWidth || y < 0 || y >= imageHeight)
+            return null;
+
+        float depth = depthImageSubscriber.GetDepthAt(x, y);
+
+        if (float.IsNaN(depth) || depth <= 0f)
+            return null;
+
+        float X = (x - cx) * depth / fx;
+        float Y = (y - cy) * depth / fy;
+        float Z = depth;
+
+        Vector3 pointCamera = new Vector3(X, -Y, Z);
+        Vector3 worldPos = transform.TransformPoint(pointCamera);
+
+        return worldPos;
+    }
+
 }
 
 

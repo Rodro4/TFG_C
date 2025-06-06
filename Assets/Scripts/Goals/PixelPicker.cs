@@ -2,10 +2,14 @@ using UnityEngine;
 
 public class PixelPicker : MonoBehaviour
 {
-    public Camera cam;                 // Cámara que hace el raycast (normalmente MainCamera)
+    public Camera cam;                 // Cámara que hace el raycast
     public MeshRenderer targetRenderer;  // El mesh renderer que tiene la textura RGB
 
     public PixelWorldInfo pixelWorldInfo;
+
+    public delegate void PixelClickAction(int x, int y);
+    public event PixelClickAction OnPixelClicked;
+
 
     void Update()
     {
@@ -26,12 +30,14 @@ public class PixelPicker : MonoBehaviour
                     if (tex != null)
                     {
                         int x = Mathf.FloorToInt(pixelUV.x * tex.width);
-                        int y = Mathf.FloorToInt(pixelUV.y * tex.height);
+                        int y = Mathf.FloorToInt((1.0f - pixelUV.y) * tex.height);  // Invertir eje Y
 
                         Debug.Log($"Click en pixel: ({x}, {y}) de la textura con tamaño {tex.width}x{tex.height}");
 
 
-                        pixelWorldInfo.GetPixelWorldInfo(x, y);
+                        //pixelWorldInfo.GetPixelWorldInfo(x, y);
+                        OnPixelClicked?.Invoke(x, y);
+
                     }
                     else
                     {
