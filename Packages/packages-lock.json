@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.siemens.ros-sharp": {
+      "version": "file:C:/Users/hllro/Desktop/Rodro/Estudios/Universidad/Quinto/TFGs/ros-sharp-2.1.0/ros-sharp-2.1.0/com.siemens.ros-sharp",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.unity.collab-proxy": {
       "version": "2.8.2",
       "depth": 0,

@@ -9434,9 +9434,10 @@ GameObject:
   - component: {fileID: 978715127}
   - component: {fileID: 978715126}
   - component: {fileID: 978715128}
-  - component: {fileID: 978715129}
   - component: {fileID: 978715130}
+  - component: {fileID: 978715129}
   - component: {fileID: 978715131}
+  - component: {fileID: 978715135}
   m_Layer: 0
   m_Name: RosConnector
   m_TagString: Untagged
@@ -9460,7 +9461,7 @@ MonoBehaviour:
   SecondsTimeout: 10
   Serializer: 0
   protocol: 0
-  RosBridgeServerUrl: ws://172.28.47.210:9090
+  RosBridgeServerUrl: ws://172.21.121.7:9090
 --- !u!4 &978715114
 Transform:
   m_ObjectHideFlags: 0
@@ -9717,6 +9718,22 @@ MonoBehaviour:
   Topic: /odom
   TimeStep: 0
   EnsureThreadSafety: 0
+--- !u!114 &978715135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 978715112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df2f407035e16d3489ab9b483e3e8e74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pointCloudTopic: /camera/depth/points
+  robotTransform: {fileID: 3431242}
+  maxTotalPoints: 500000
+  pointSkip: 10
 --- !u!1 &981944401
 GameObject:
   m_ObjectHideFlags: 8
@@ -10042,7 +10059,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 992690400}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -13318,7 +13335,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &1241840559
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -23010,6 +23027,7 @@ SceneRoots:
   - {fileID: 313944484}
   - {fileID: 580806596}
   - {fileID: 941751261}
+  - {fileID: 497079484}
   - {fileID: 1315911303}
   - {fileID: 521354432}
   - {fileID: 698132811}
@@ -23030,4 +23048,3 @@ SceneRoots:
   - {fileID: 429978757}
   - {fileID: 992690401}
   - {fileID: 1098238645}
-  - {fileID: 497079484}
