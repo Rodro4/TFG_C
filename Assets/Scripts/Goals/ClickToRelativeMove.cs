@@ -1,98 +1,15 @@
-//using UnityEngine;
-//using System.Collections;
-
-//public class ClickToRelativeMove : MonoBehaviour
-//{
-//    public PixelPicker pixelPicker;
-//    public PixelWorldInfo pixelWorldInfo;
-//    public SimpleTwistPublisher twistPublisher;
-
-//    [Header("Parámetros de movimiento")]
-//    public float linearSpeed = 0.2f;
-//    public float angularSpeed = 0.5f;
-//    public float angularThresholdDeg = 2f;
-//    public float stopDelay = 0.1f;
-//    public float angularKp = 2.0f;
-
-//    private void Start()
-//    {
-//        pixelPicker.OnPixelClicked += OnPixelClickedHandler;
-//    }
-
-//    private void OnDestroy()
-//    {
-//        pixelPicker.OnPixelClicked -= OnPixelClickedHandler;
-//    }
-
-//    private void OnPixelClickedHandler(int x, int y)
-//    {
-//        UnityEngine.Vector3? point = pixelWorldInfo.GetWorldCoordinates(x, y);
-//        if (!point.HasValue) return;
-
-//        UnityEngine.Vector3 camPoint = point.Value;
-//        float forwardDistance = camPoint.z;
-//        float lateralOffset = camPoint.x;
-
-//        // Ángulo relativo al robot
-//        float relativeAngleRad = Mathf.Atan2(lateralOffset, forwardDistance);
-//        float forwardDuration = forwardDistance / linearSpeed;
-
-//        Debug.Log($"[MOV] Girar {relativeAngleRad * Mathf.Rad2Deg:F1}° y avanzar {forwardDistance:F2} m");
-
-//        StartCoroutine(RotateThenMove(relativeAngleRad, forwardDuration));
-//    }
-
-//    private IEnumerator RotateThenMove(float relativeAngleRad, float forwardDuration)
-//    {
-//        // Fase 1: Gira hasta estar bien orientado
-//        Debug.Log("[Fase 1] Girando");
-//        while (Mathf.Abs(relativeAngleRad) > angularThresholdDeg * Mathf.Deg2Rad)
-//        {
-//            float angularZ = Mathf.Clamp(relativeAngleRad * angularKp, -angularSpeed, angularSpeed);
-//            twistPublisher.PublishVelocity(0, angularZ);
-//            yield return null;
-
-//            relativeAngleRad -= angularZ * Time.deltaTime;
-//        }
-
-//        twistPublisher.Stop();
-//        yield return new WaitForSeconds(stopDelay);
-
-//        // Fase 2: Avanzar recto
-//        Debug.Log("[Fase 2] Avanzando recto");
-//        float elapsed = 0f;
-//        while (elapsed < forwardDuration)
-//        {
-//            twistPublisher.PublishVelocity(linearSpeed, 0);
-//            elapsed += Time.deltaTime;
-//            yield return null;
-//        }
-
-//        twistPublisher.Stop();
-//        Debug.Log("[FIN] Movimiento completado");
-//    }
-//}
-
-
-
-
-
-
-
-
-
-
 using UnityEngine;
 using System.Collections;
 
+// Handles click-based relative navigation by rotating the robot toward a point and then moving forward. Uses Twist messages and odometry yaw data
 public class ClickToRelativeMove : MonoBehaviour
 {
+    [Header("Dependencies")]
     public PixelPicker pixelPicker;
-    public PixelWorldInfo pixelWorldInfo;
     public SimpleTwistPublisher twistPublisher;
     public YawSubscriber yawSubscriber;
 
-    [Header("Parámetros de movimiento")]
+    [Header("Movement Parameters")]
     public float linearSpeed = 0.2f;
     public float angularSpeed = 0.5f;
     public float angularThresholdDeg = 2f;
@@ -109,28 +26,26 @@ public class ClickToRelativeMove : MonoBehaviour
         pixelPicker.OnPixelClicked -= OnPixelClickedHandler;
     }
 
+    // Triggered when a pixel is clicked on screen. Converts the pixel to a 3D point and calculates a rotation + forward move
     private void OnPixelClickedHandler(int x, int y)
     {
-        UnityEngine.Vector3? point = pixelWorldInfo.GetWorldCoordinates(x, y);
+        UnityEngine.Vector3? point = pixelPicker.GetWorldCoordinates(x, y);
         if (!point.HasValue) return;
 
         UnityEngine.Vector3 camPoint = point.Value;
         float forwardDistance = camPoint.z;
         float lateralOffset = camPoint.x;
 
-        // CORREGIDO: Signo para que izquierda sea izquierda
         float relativeAngleRad = -Mathf.Atan2(lateralOffset, forwardDistance);
         float forwardDuration = forwardDistance / linearSpeed;
-
-        Debug.Log($"[MOV] Girar {relativeAngleRad * Mathf.Rad2Deg:F1}° y avanzar {forwardDistance:F2} m");
 
         StartCoroutine(RotateThenMove(relativeAngleRad, forwardDuration));
     }
 
+    // Performs two-step navigation: first rotation, then linear forward motion.
     private IEnumerator RotateThenMove(float relativeAngleRad, float forwardDuration)
     {
-        // FASE 1: Gira hasta tener el ángulo relativo corregido
-        Debug.Log("[Fase 1] Girando");
+        // --- PHASE 1: Rotation ---
         float initialYaw = yawSubscriber.Yaw;
         float targetYaw = NormalizeAngleRad(initialYaw + relativeAngleRad);
 
@@ -150,8 +65,7 @@ public class ClickToRelativeMove : MonoBehaviour
         twistPublisher.Stop();
         yield return new WaitForSeconds(stopDelay);
 
-        // FASE 2: Avanzar recto
-        Debug.Log("[Fase 2] Avanzando recto");
+        // --- PHASE 2: Forward movement ---
         float elapsed = 0f;
         while (elapsed < forwardDuration)
         {
@@ -161,9 +75,9 @@ public class ClickToRelativeMove : MonoBehaviour
         }
 
         twistPublisher.Stop();
-        Debug.Log("[FIN] Movimiento completado");
     }
 
+    // Normalizes an angle to the range [-Pi, Pi].
     private float NormalizeAngleRad(float angle)
     {
         while (angle > Mathf.PI) angle -= 2 * Mathf.PI;

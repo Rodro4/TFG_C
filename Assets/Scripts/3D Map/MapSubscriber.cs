@@ -6,17 +6,24 @@ using System.Collections.Generic;
 
 namespace RosSharp.RosBridgeClient
 {
+    // Subscribes to a ROS OccupancyGrid topic, renders the map as a texture, displays it on a UI RawImage, and generates wall GameObjects in the scene
     public class MapSubscriber : MonoBehaviour
     {
         private RosSocket rosSocket;
         public string topicName = "/map";
+
         private OccupancyGrid mapMessage;
         private Texture2D mapTexture;
 
+        [Tooltip("UI element to display the map texture")]
         public GameObject mapDisplay;
-        public Transform mapParent; // Objeto contenedor para el mapa y muros
+
+        [Tooltip("Parent transform for the map visualization (walls, quad)")]
+        public Transform mapParent;
 
         private bool newMapAvailable = false;
+
+        // Keep track of instantiated walls to manage them (destroy/update)
         private List<GameObject> walls = new List<GameObject>();
 
         private GameObject mapQuad;
@@ -28,14 +35,15 @@ namespace RosSharp.RosBridgeClient
             {
                 rosSocket = rosConnector.RosSocket;
                 rosSocket.Subscribe<OccupancyGrid>(topicName, ReceiveMap);
-                Debug.Log("Suscrito al topic: " + topicName);
+                Debug.Log($"MapSubscriber: Subscribed to topic: {topicName}");
             }
             else
             {
-                Debug.LogError("No se encontró el componente RosConnector.");
+                Debug.LogError("MapSubscriber: RosConnector component not found in the scene.");
             }
         }
 
+        // Callback for when a new OccupancyGrid message is received. Marks that a new map is available for processing in Update
         private void ReceiveMap(OccupancyGrid message)
         {
             mapMessage = message;
@@ -44,6 +52,7 @@ namespace RosSharp.RosBridgeClient
 
         void Update()
         {
+            // Only process new map when available
             if (newMapAvailable)
             {
                 mapTexture = CreateTextureFromMap(mapMessage);
@@ -51,7 +60,7 @@ namespace RosSharp.RosBridgeClient
                 UpdateMapDisplay();
                 GenerateWallsFromMap(mapMessage);
 
-                // ROTAR MAP PARENT en Y solo después de tener el mapa generado
+                // Rotate the mapParent -90 degrees on Y to align properly
                 if (mapParent != null)
                 {
                     Vector3 euler = mapParent.rotation.eulerAngles;
@@ -62,6 +71,7 @@ namespace RosSharp.RosBridgeClient
             }
         }
 
+        // Creates a Texture2D from the OccupancyGrid data. Occupied cells (100) are black, free (0) are white, unknown are gray
         private Texture2D CreateTextureFromMap(OccupancyGrid map)
         {
             int width = (int)map.info.width;
@@ -69,11 +79,13 @@ namespace RosSharp.RosBridgeClient
 
             if (map.data.Length != width * height)
             {
-                Debug.LogWarning("Datos del mapa inconsistentes.");
+                Debug.LogWarning("MapSubscriber: Map data size mismatch.");
                 return null;
             }
 
             Texture2D texture = new Texture2D(width, height, TextureFormat.RGB24, false);
+
+            // Iterate over map cells and set pixels accordingly
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
@@ -83,11 +95,12 @@ namespace RosSharp.RosBridgeClient
 
                     Color pixelColor = value switch
                     {
-                        0 => Color.white,
-                        100 => Color.black,
-                        _ => Color.gray
+                        0 => Color.white,       // Free space
+                        100 => Color.black,     // Occupied space
+                        _ => Color.gray         // Unknown
                     };
 
+                    // Flip Y to match Unity texture coordinates (bottom-left origin
                     texture.SetPixel(x, height - y - 1, pixelColor);
                 }
             }
@@ -96,6 +109,7 @@ namespace RosSharp.RosBridgeClient
             return texture;
         }
 
+        // Updates the UI RawImage component to show the map texture
         private void UpdateMapDisplay()
         {
             if (mapDisplay == null || mapTexture == null) return;
@@ -108,8 +122,10 @@ namespace RosSharp.RosBridgeClient
             }
         }
 
+        // Generates wall GameObjects in the scene corresponding to occupied cells in the map. Each wall is a green cube scaled to the map resolution
         private void GenerateWallsFromMap(OccupancyGrid map)
         {
+            // Destroy previous walls before creating new ones
             foreach (GameObject wall in walls)
                 Destroy(wall);
             walls.Clear();
@@ -129,18 +145,17 @@ namespace RosSharp.RosBridgeClient
                 {
                     int index = x + y * width;
                     if (map.data[index] != 100)
-                        continue;
+                        continue;   // Only occupied cells
 
                     float worldX = x * resolution + origin.x;
                     float worldZ = y * resolution + origin.z;
-                    Vector3 position = new Vector3(worldX, 1f, worldZ);
+                    Vector3 position = new Vector3(worldX, 1f, worldZ);    // y=1 so walls stand above ground
 
                     GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     wall.transform.position = position;
-                    wall.transform.localScale = new Vector3(resolution, 2f, resolution);
+                    wall.transform.localScale = new Vector3(resolution, 2f, resolution);   // height=2 units
                     wall.GetComponent<Renderer>().material.color = Color.green;
 
-                    // Añadir a mapParent
                     if (mapParent != null)
                         wall.transform.SetParent(mapParent);
 
@@ -149,6 +164,7 @@ namespace RosSharp.RosBridgeClient
             }
         }
 
+        // Creates or updates a Quad object with the map texture to visualize the map on the XZ plane
         private void CreateOrUpdateMapQuad(Texture2D texture, OccupancyGrid map)
         {
             if (mapQuad == null)
@@ -157,7 +173,6 @@ namespace RosSharp.RosBridgeClient
                 mapQuad.name = "MapQuad";
                 mapQuad.GetComponent<MeshRenderer>().material = new Material(Shader.Find("Unlit/Texture"));
 
-                // Hacer que mapQuad sea hijo de mapParent
                 if (mapParent != null)
                     mapQuad.transform.SetParent(mapParent);
             }
@@ -168,6 +183,7 @@ namespace RosSharp.RosBridgeClient
             float width = map.info.width * map.info.resolution;
             float height = map.info.height * map.info.resolution;
 
+            // Scale the quad to the size of the map, flipped on X to correct orientation
             mapQuad.transform.localScale = new Vector3(-width, height, 1);
 
             Vector3 origin = new Vector3(
@@ -176,20 +192,12 @@ namespace RosSharp.RosBridgeClient
                 (float)map.info.origin.position.y
             );
 
+            // Position quad so it covers the map area centered on origin + half width/height
             Vector3 position = origin + new Vector3(width / 2f, 0, height / 2f);
             mapQuad.transform.position = position;
 
-            // El Quad se gira para que esté sobre el plano XZ
+            // Rotate quad to lie flat on XZ plane facing upward
             mapQuad.transform.rotation = Quaternion.Euler(90, 180, 0);
-        }
-
-        void OnApplicationQuit()
-        {
-            if (rosSocket != null)
-            {
-                rosSocket.Close();
-                Debug.Log("Conexión ROS cerrada.");
-            }
         }
     }
 }

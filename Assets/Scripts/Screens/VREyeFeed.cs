@@ -2,30 +2,32 @@ using UnityEngine;
 
 public class VREyeFeed : MonoBehaviour
 {
-    public MeshRenderer rgbRenderer;    // Plano RGB
-    public MeshRenderer depthRenderer;  // Plano Depth
+    public MeshRenderer rgbRenderer;
+    public MeshRenderer depthRenderer;
 
     private GameObject leftEyeQuad;
     private GameObject rightEyeQuad;
     private Material eyeMaterial;
 
     private bool isImmersive = false;
+    private bool showingRGB = true;
 
     void Start()
     {
         if (rgbRenderer == null || depthRenderer == null)
         {
-            Debug.LogError("No se han asignado los MeshRenderers RGB y/o Depth.");
+            Debug.LogError("VREyeFeed: RGB and/or Depth MeshRenderers not assigned.");
             return;
         }
 
+        // Use an unlit material to display the video texture clearly
         eyeMaterial = new Material(Shader.Find("Unlit/Texture"));
 
         leftEyeQuad = CreateEyeQuad("LeftEyeQuad", new Vector3(-0.03f, 0, 0.15f));
         rightEyeQuad = CreateEyeQuad("RightEyeQuad", new Vector3(0.03f, 0, 0.15f));
 
-        SetQuadsActive(false); // comienza en modo cabina
-        SetScreenSource(true); // comienza en modo RGB
+        SetQuadsActive(false); // Start in cockpit mode
+        SetScreenSource(true); // Start with RGB feed
     }
 
     void Update()
@@ -37,6 +39,7 @@ public class VREyeFeed : MonoBehaviour
         }
     }
 
+    // Creates a textured quad in front of the VR camera
     GameObject CreateEyeQuad(string name, Vector3 localPosition)
     {
         GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -45,7 +48,7 @@ public class VREyeFeed : MonoBehaviour
         Camera mainCam = Camera.main;
         if (mainCam == null)
         {
-            Debug.LogError("No se encontró la cámara principal.");
+            Debug.LogError("VREyeFeed: Main camera not found.");
             return null;
         }
 
@@ -60,24 +63,27 @@ public class VREyeFeed : MonoBehaviour
         return quad;
     }
 
+    // Enables or disables the eye quads
     private void SetQuadsActive(bool active)
     {
         if (leftEyeQuad != null) leftEyeQuad.SetActive(active);
         if (rightEyeQuad != null) rightEyeQuad.SetActive(active);
     }
 
+    // Toggles immersive mode (quads enabled/disabled)
     public void SetImmersiveMode(bool active)
     {
         isImmersive = active;
         SetQuadsActive(active);
     }
 
-    private bool showingRGB = true;
+    // Select whether to use the RGB or Depth feed
     public void SetScreenSource(bool useRGB)
     {
         showingRGB = useRGB;
     }
 
+    // Gets the current texture to display
     private Texture GetCurrentTexture()
     {
         if (showingRGB)

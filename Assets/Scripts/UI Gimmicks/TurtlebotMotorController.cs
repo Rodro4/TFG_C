@@ -10,25 +10,28 @@ public class TurtlebotMotorController : MonoBehaviour
 
     void Start()
     {
+        // Find the RosConnector component in the scene and get the RosSocket
         RosConnector connector = FindObjectOfType<RosConnector>();
         if (connector != null)
         {
             rosSocket = connector.RosSocket;
+            // Advertise the motor power topic
             motorPowerPublisherId = rosSocket.Advertise<Int16>(motorPowerTopic);
-            Debug.Log("Topic de motor power anunciado.");
+            Debug.Log("TurtlebotMotorController: Motor power topic advertised.");
         }
         else
         {
-            Debug.LogError("RosConnector no encontrado en la escena.");
+            Debug.LogError("TurtlebotMotorController: RosConnector not found in the scene.");
         }
     }
 
+    // Enables or disables the robot motors by publishing to the motor power topic
     public void ToggleMotors(bool on)
     {
         if (rosSocket == null || string.IsNullOrEmpty(motorPowerPublisherId)) return;
 
         Int16 powerMsg = new Int16 { data = (short)(on ? 1 : 0) };
         rosSocket.Publish(motorPowerPublisherId, powerMsg);
-        Debug.Log("Motores " + (on ? "ENCENDIDOS" : "APAGADOS"));
+        Debug.Log("TurtlebotMotorController: Motors " + (on ? "ENABLED" : "DISABLED"));
     }
 }

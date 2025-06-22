@@ -81,7 +81,6 @@ namespace RosSharp.RosBridgeClient
             isMessageReceived = false;
         }
 
-        // Método accesible desde otros scripts
         public float GetDepthAt(int x, int y)
         {
             if (depthValues == null || x < 0 || x >= imageWidth || y < 0 || y >= imageHeight)
