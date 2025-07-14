@@ -355,18 +355,10 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
+// PointCloud2ParticleSubscriber.cs
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using RosSharp.RosBridgeClient;
 using RosSharp.RosBridgeClient.MessageTypes.Sensor;
@@ -376,36 +368,27 @@ public class PointCloud2ParticleSubscriber : MonoBehaviour
     public string pointCloudTopic = "/camera/depth/points";
     public TFSubscriber tfSubscriber;
 
-    [Tooltip("Voxel size used to reduce duplicate points")]
+    [Tooltip("Tamaño de voxel para filtrar duplicados")]
     public float voxelSize = 0.05f;
 
-    [Tooltip("Maximum number of particles allowed in the system")]
+    [Tooltip("Máximo de partículas")]
     public int maxParticles = 10000;
 
-    [Tooltip("Skip interval for sampling points from the cloud")]
+    [Tooltip("Salto para muestrear puntos")]
     public int pointSkip = 5;
 
     private RosSocket rosSocket;
     private ParticleSystem particleSystem;
-    private ParticleSystem.Particle[] particles;
 
-    // Keeps track of voxels already filled to avoid duplicate particles
-    private Dictionary<Vector3Int, Color32> occupiedVoxels = new();
-    private List<ParticleSystem.Particle> allParticles = new();
+    private readonly Dictionary<Vector3Int, Color32> occupiedVoxels = new();
+    private readonly List<ParticleSystem.Particle> allParticles = new();
 
     void Start()
     {
         var rosConnector = FindObjectOfType<RosConnector>();
-        if (rosConnector == null)
+        if (rosConnector == null || tfSubscriber == null)
         {
-            Debug.LogError("PointCloud2ParticleSubscriber: RosConnector not found.");
-            enabled = false;
-            return;
-        }
-
-        if (tfSubscriber == null)
-        {
-            Debug.LogError("PointCloud2ParticleSubscriber: TFSubscriber not assigned.");
+            Debug.LogError("PointCloud2ParticleSubscriber: RosConnector o TFSubscriber no asignados.");
             enabled = false;
             return;
         }
@@ -413,12 +396,8 @@ public class PointCloud2ParticleSubscriber : MonoBehaviour
         rosSocket = rosConnector.RosSocket;
         rosSocket.Subscribe<PointCloud2>(pointCloudTopic, ReceivePointCloud, 0);
 
-        // Create an independent GameObject to render the particle system
-        GameObject psGO = new GameObject("PointCloudParticles");
+        var psGO = new GameObject("PointCloudParticles");
         psGO.transform.SetParent(null);
-        psGO.transform.position = Vector3.zero;
-        psGO.transform.rotation = Quaternion.identity;
-
         particleSystem = psGO.AddComponent<ParticleSystem>();
         var main = particleSystem.main;
         main.maxParticles = maxParticles;
@@ -426,135 +405,95 @@ public class PointCloud2ParticleSubscriber : MonoBehaviour
         main.playOnAwake = false;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.startSize = voxelSize;
-        main.simulationSpeed = 0f;
         main.startLifetime = float.MaxValue;
-
-        var shape = particleSystem.shape;
-        shape.shapeType = ParticleSystemShapeType.Sphere;
-        shape.radius = 1f;
-
+        main.simulationSpeed = 0f;
         var emission = particleSystem.emission;
         emission.enabled = false;
-
         var renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
-        Material particleMaterial = new Material(Shader.Find("Particles/Standard Unlit"));
-        particleMaterial.SetColor("_Color", Color.white);
-        renderer.material = particleMaterial;
+        renderer.material = new Material(Shader.Find("Particles/Standard Unlit")) { color = Color.white };
     }
 
-    // Handles incoming PointCloud2 messages and converts points into particles
     private void ReceivePointCloud(PointCloud2 msg)
     {
-        int pointStep = (int)msg.point_step;
-        int width = (int)msg.width;
-        int height = (int)msg.height;
+        double timeStamp = msg.header.stamp.secs + msg.header.stamp.nsecs * 1e-9;
+        string cloudFrame = msg.header.frame_id.Trim('/');
 
-        // Determine byte offsets for x, y, z and RGB fields
-        int xOffset = -1, yOffset = -1, zOffset = -1, rgbOffset = -1;
-        foreach (var field in msg.fields)
-        {
-            if (field.name == "x") xOffset = (int)field.offset;
-            if (field.name == "y") yOffset = (int)field.offset;
-            if (field.name == "z") zOffset = (int)field.offset;
-            if (field.name == "rgb" || field.name == "rgba") rgbOffset = (int)field.offset;
-        }
+        Debug.Log($"PointCloud2 TimeStamp: {timeStamp:F9}");
 
-        if (xOffset == -1 || yOffset == -1 || zOffset == -1)
+        if (!tfSubscriber.TryGetTransformAtTime("map", cloudFrame, timeStamp, out Vector3 mapPos, out Quaternion mapRot))
         {
-            Debug.LogWarning("PointCloud2ParticleSubscriber: XYZ fields not found in PointCloud2.");
+            Debug.Log($"TF Transform Used for Cloud at {timeStamp:F9}: Pos {mapPos}, Rot {mapRot.eulerAngles}");
             return;
         }
 
-        int totalPoints = width * height;
+        int step = (int)msg.point_step;
+        int total = (int)msg.width * (int)msg.height;
 
-        Vector3 pos;
-        Quaternion rot;
-        string cloudFrame = "camera_depth_optical_frame";
-
-        // Attempt to retrieve transformation to 'map' frame
-        if (!tfSubscriber.TryGetTransform("map", cloudFrame, out pos, out rot))
+        for (int i = 0; i < total; i += pointSkip)
         {
-            Debug.LogWarning("TF lookup failed for map -> camera_depth_optical_frame.");
-            return;
-        }
+            int idx = i * step;
+            if (idx + step > msg.data.Length) continue;
 
-        for (int i = 0; i < totalPoints; i += pointSkip)
-        {
-            int baseIndex = i * pointStep;
-            if (baseIndex + pointStep > msg.data.Length)
-                continue;
+            float x = BitConverter.ToSingle(msg.data, idx + GetOffset(msg, "x"));
+            float y = BitConverter.ToSingle(msg.data, idx + GetOffset(msg, "y"));
+            float z = BitConverter.ToSingle(msg.data, idx + GetOffset(msg, "z"));
+            if (float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z) || z < 0.01f || z > 10f) continue;
 
-            float x = BitConverter.ToSingle(msg.data, baseIndex + xOffset);
-            float y = BitConverter.ToSingle(msg.data, baseIndex + yOffset);
-            float z = BitConverter.ToSingle(msg.data, baseIndex + zOffset);
+            Vector3 local = new Vector3(x, z, -y);
+            Vector3 world = mapRot * local + mapPos;
 
-            if (float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z))
-                continue;
-            if (z <= 0.01f || z > 10f)
-                continue;
-
-            // Convert from ROS FLU to Unity LFU coordinate system
-            Vector3 localPos = new Vector3(x, -z, y);
-
-            // Apply TF transformation to convert to world space
-            Vector3 worldPos = rot * localPos + pos;
-
-            // Discretize position into voxel coordinates
-            Vector3Int voxelCoord = new Vector3Int(
-                Mathf.RoundToInt(worldPos.x / voxelSize),
-                Mathf.RoundToInt(worldPos.y / voxelSize),
-                Mathf.RoundToInt(worldPos.z / voxelSize)
+            var vox = new Vector3Int(
+                Mathf.RoundToInt(world.x / voxelSize),
+                Mathf.RoundToInt(world.y / voxelSize),
+                Mathf.RoundToInt(world.z / voxelSize)
             );
+            if (occupiedVoxels.ContainsKey(vox)) continue;
 
-            if (occupiedVoxels.ContainsKey(voxelCoord))
-                continue;
+            Color32 col = GetColor(msg, idx);
+            occupiedVoxels[vox] = col;
 
-            // Default to white if no RGB data
-            Color32 col = new Color32(255, 255, 255, 255);
-
-            if (rgbOffset != -1 && baseIndex + rgbOffset + 4 <= msg.data.Length)
+            if (allParticles.Count < maxParticles)
             {
-                uint rgba = BitConverter.ToUInt32(msg.data, baseIndex + rgbOffset);
-                byte r = (byte)((rgba >> 16) & 0xFF);
-                byte g = (byte)((rgba >> 8) & 0xFF);
-                byte b = (byte)(rgba & 0xFF);
-                col = new Color32(r, g, b, 255);
-            }
-
-            occupiedVoxels[voxelCoord] = col;
-
-            lock (allParticles)
-            {
-                if (allParticles.Count < maxParticles)
+                allParticles.Add(new ParticleSystem.Particle
                 {
-                    Vector3 finalPos = (Vector3)voxelCoord * voxelSize;
-                    ParticleSystem.Particle p = new ParticleSystem.Particle
-                    {
-                        position = finalPos,
-                        startColor = col,
-                        startSize = voxelSize,
-                        remainingLifetime = float.MaxValue
-                    };
-                    allParticles.Add(p);
-                }
+                    position = new Vector3(vox.x * voxelSize, vox.y * voxelSize, vox.z * voxelSize),
+                    startColor = col,
+                    startSize = voxelSize,
+                    remainingLifetime = float.MaxValue
+                });
             }
         }
     }
 
     void Update()
     {
-        if (allParticles.Count == 0)
-            return;
-
-        ParticleSystem.Particle[] localParticles;
-
-        // Safely copy particles list to avoid race conditions
-        lock (allParticles)
+        if (allParticles.Count > 0)
         {
-            localParticles = allParticles.ToArray();
+            particleSystem.SetParticles(allParticles.ToArray(), allParticles.Count);
+            particleSystem.Play();
         }
+    }
 
-        particleSystem.SetParticles(localParticles, localParticles.Length);
-        particleSystem.Play();
+    private int GetOffset(PointCloud2 msg, string field)
+    {
+        foreach (var f in msg.fields)
+            if (f.name == field)
+                return (int)f.offset;
+        throw new Exception($"Campo '{field}' no existe en PointCloud2");
+    }
+
+    private Color32 GetColor(PointCloud2 msg, int baseIndex)
+    {
+        var fld = msg.fields.FirstOrDefault(f => f.name == "rgb" || f.name == "rgba");
+        int rgbOff = (fld != null) ? (int)fld.offset : -1;
+        if (rgbOff >= 0 && baseIndex + rgbOff + 4 <= msg.data.Length)
+        {
+            uint rgba = BitConverter.ToUInt32(msg.data, baseIndex + rgbOff);
+            byte r = (byte)((rgba >> 16) & 0xFF);
+            byte g = (byte)((rgba >> 8) & 0xFF);
+            byte b = (byte)(rgba & 0xFF);
+            return new Color32(r, g, b, 255);
+        }
+        return new Color32(255, 255, 255, 255);
     }
 }

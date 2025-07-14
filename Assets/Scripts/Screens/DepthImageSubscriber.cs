@@ -49,6 +49,8 @@ namespace RosSharp.RosBridgeClient
                 depthValues[i] = depth;
             }
 
+            Debug.Log("Encoding: " + image.encoding);
+
             isMessageReceived = true;
         }
 
@@ -67,9 +69,12 @@ namespace RosSharp.RosBridgeClient
                 float depth = depthValues[i];
 
                 if (float.IsNaN(depth) || depth <= 0f || depth > maxDepthMeters)
-                    depth = maxDepthMeters;
+                {
+                    pixels[i] = new Color32(0, 0, 0, 255);
+                    continue;
+                }
 
-                float normalized = Mathf.Clamp01(depth / maxDepthMeters);
+                float normalized = 1f - Mathf.Clamp01(depth / maxDepthMeters);
                 byte gray = (byte)(normalized * 255f);
                 pixels[i] = new Color32(gray, gray, gray, 255);
             }
@@ -91,3 +96,6 @@ namespace RosSharp.RosBridgeClient
         }
     }
 }
+
+
+// probar con /camera/depth/image_rect_raw  /camera/aligned_depth_to_color/image_raw 

@@ -1,5 +1,6 @@
 using RosSharp.RosBridgeClient;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PixelPicker : MonoBehaviour
 {
@@ -20,6 +21,8 @@ public class PixelPicker : MonoBehaviour
     public float fy = 554.254691191187f;
     public float cx = 320.5f;
     public float cy = 240.5f;
+
+    public InputActionProperty vrSelectAction;
 
     void Update()
     {
@@ -50,8 +53,35 @@ public class PixelPicker : MonoBehaviour
                 }
             }
         }
-    }
 
+        if (vrSelectAction.action != null && vrSelectAction.action.WasPressedThisFrame())
+        {
+            Ray ray = new Ray(cam.transform.position, cam.transform.forward);
+
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
+                if (hit.collider.gameObject == targetRenderer.gameObject)
+                {
+                    Vector2 pixelUV = hit.textureCoord;
+
+                    Texture tex = targetRenderer.material.mainTexture;
+
+                    if (tex != null)
+                    {
+                        int x = Mathf.FloorToInt(pixelUV.x * tex.width);
+                        int y = Mathf.FloorToInt((1.0f - pixelUV.y) * tex.height);
+
+                        Debug.Log($"PixelPicker (VR): Selected pixel ({x}, {y})");
+                        OnPixelClicked?.Invoke(x, y);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("PixelPicker (VR): No texture assigned.");
+                    }
+                }
+            }
+        }
+    }
 
     // Converts pixel coordinates plus depth to a 3D world point. Returns null if depth data unavailable or invalid
     public Vector3? GetWorldCoordinates(int x, int y)

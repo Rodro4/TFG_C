@@ -10,32 +10,46 @@ public class VRTeleop : UnityPublisher<Twist>
     public InputActionProperty moveAction;
 
     [Header("Speed Settings")]
-    public float linearSpeed = 0.5f;
+    public float linearSpeed = 0.8f;
     public float angularSpeed = 1.0f;
 
     [Header("UI Sliders")]
     public Slider linearSlider;
     public Slider angularSlider;
 
+    [Header("Mode Switch Settings")]
+    public InputActionAsset inputActions; // Referencia al XRI Default Input Actions
+    public Button switchModeButton;       // Botón de la UI para cambiar de modo
+
     private Twist message;
+
+    private bool isRobotMode = false; // Estado actual del modo
 
     protected override void Start()
     {
         base.Start();
         InitializeMessage();
 
-        // Hook up UI sliders to update speed dynamically
+        // Hook up UI sliders
         if (linearSlider != null) linearSlider.onValueChanged.AddListener(SetLinearSpeed);
         if (angularSlider != null) angularSlider.onValueChanged.AddListener(SetAngularSpeed);
+
+        // Hook up the mode switch button
+        if (switchModeButton != null)
+            switchModeButton.onClick.AddListener(SwitchMode);
+
+        UpdateModeState();
     }
 
     private void FixedUpdate()
     {
-        UpdateMessageFromInput();
-        Publish(message);
+        if (isRobotMode) // Solo mover el robot si estamos en modo robot
+        {
+            UpdateMessageFromInput();
+            Publish(message);
+        }
     }
 
-    // Initialize an empty Twist message
     private void InitializeMessage()
     {
         message = new Twist
@@ -45,18 +59,41 @@ public class VRTeleop : UnityPublisher<Twist>
         };
     }
 
-    // Update the ROS Twist message based on VR input
     private void UpdateMessageFromInput()
     {
         Vector2 input = moveAction.action.ReadValue<Vector2>();
 
         message.linear.x = input.y * linearSpeed;
-        message.angular.z = -input.x * angularSpeed; // Negative to match expected turning direction
+        message.angular.z = -input.x * angularSpeed;
     }
 
-    // Called from UI to update linear speed
     public void SetLinearSpeed(float value) => linearSpeed = value;
 
-    // Called from UI to update angular speed
     public void SetAngularSpeed(float value) => angularSpeed = value;
+
+    // Método para cambiar entre modos
+    public void SwitchMode()
+    {
+        isRobotMode = !isRobotMode;
+        UpdateModeState();
+    }
+
+    // Activar/desactivar las acciones correctas según el modo
+    private void UpdateModeState()
+    {
+        var playerMove = inputActions.FindAction("Move", true);
+        var robotMove = inputActions.FindAction("Move Robot", true);
+
+        if (isRobotMode)
+        {
+            playerMove.Disable();
+            robotMove.Enable();
+        }
+        else
+        {
+            robotMove.Disable();
+            playerMove.Enable();
+        }
+    }
 }
+

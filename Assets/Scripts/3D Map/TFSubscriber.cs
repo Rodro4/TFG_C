@@ -1,4 +1,7 @@
+// TFSubscriber.cs
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using RosSharp.RosBridgeClient;
 using RosSharp.RosBridgeClient.MessageTypes.Tf2;
@@ -10,7 +13,6 @@ public class TFSubscriber : MonoBehaviour
 
     private RosSocket rosSocket;
 
-    // Internal representation of a transform node in the TF tree
     private class TFNode
     {
         public string parent;
@@ -20,15 +22,14 @@ public class TFSubscriber : MonoBehaviour
         public bool isStatic;
     }
 
-    // Stores transformations indexed by child_frame_id
-    private Dictionary<string, TFNode> tfTree = new();
+    private readonly Dictionary<string, List<TFNode>> tfHistory = new();
 
     void Start()
     {
         var rosConnector = FindObjectOfType<RosConnector>();
         if (rosConnector == null)
         {
-            Debug.LogError("TFSubscriber: RosConnector not found.");
+            Debug.LogError("TFSubscriber: RosConnector no encontrado.");
             enabled = false;
             return;
         }
@@ -36,10 +37,9 @@ public class TFSubscriber : MonoBehaviour
         rosSocket = rosConnector.RosSocket;
         rosSocket.Subscribe<TFMessage>(tfTopic, msg => ReceiveTFMessage(msg, false), 0);
         rosSocket.Subscribe<TFMessage>(tfStaticTopic, msg => ReceiveTFMessage(msg, true), 0);
-        Debug.Log("TFSubscriber: Subscribed to /tf y /tf_static");
+        Debug.Log("TFSubscriber: Subscribed to /tf and /tf_static");
     }
 
-    // Callback to process incoming TF messages
     private void ReceiveTFMessage(TFMessage msg, bool isStatic)
     {
         foreach (var tf in msg.transforms)
@@ -47,112 +47,94 @@ public class TFSubscriber : MonoBehaviour
             string parent = tf.header.frame_id.Trim('/');
             string child = tf.child_frame_id.Trim('/');
 
-            Vector3 pos = new Vector3(
-                (float)tf.transform.translation.x,
-                (float)tf.transform.translation.y,
-                (float)tf.transform.translation.z
-            );
-
-            Quaternion rot = new Quaternion(
-                (float)tf.transform.rotation.x,
-                (float)tf.transform.rotation.y,
-                (float)tf.transform.rotation.z,
-                (float)tf.transform.rotation.w
-            );
-
-            double time = tf.header.stamp.secs + tf.header.stamp.nsecs * 1e-9;
-
-            // If a static transform already exists for this frame, skip dynamic updates
-            if (tfTree.ContainsKey(child) && tfTree[child].isStatic && !isStatic)
-                continue;
-
-            tfTree[child] = new TFNode
+            var node = new TFNode
             {
                 parent = parent,
-                position = pos,
-                rotation = rot,
-                time = time,
+                position = new Vector3((float)tf.transform.translation.x,
+                                        (float)tf.transform.translation.y,
+                                        (float)tf.transform.translation.z),
+                rotation = new Quaternion((float)tf.transform.rotation.x,
+                                           (float)tf.transform.rotation.y,
+                                           (float)tf.transform.rotation.z,
+                                           (float)tf.transform.rotation.w),
+                time = tf.header.stamp.secs + tf.header.stamp.nsecs * 1e-9,
                 isStatic = isStatic
             };
 
+            if (!tfHistory.TryGetValue(child, out var list))
+            {
+                list = new List<TFNode>();
+                tfHistory[child] = list;
+            }
+
             if (isStatic)
-                Debug.Log($"TFSubscriber (/tf_static): Registered transform {parent} -> {child}.");
+            {
+                list.Clear();
+                list.Add(node);
+            }
+            else
+            {
+                list.Add(node);
+
+                // PURGA: mantén solo los últimos N segundos
+                double cutoff = node.time - 10.0; // 10 segundos de historial
+                list.RemoveAll(n => n.time < cutoff);
+            }
         }
     }
 
     /// <summary>
-    /// Recursively builds the transform chain from sourceFrame to targetFrame.
-    /// Returns false if no valid path is found.
+    /// Resuelve la transformación sourceFrame->targetFrame en el instante timeStamp.
     /// </summary>
-    public bool TryGetTransform(string targetFrame, string sourceFrame, out Vector3 position, out Quaternion rotation)
+    public bool TryGetTransformAtTime(string targetFrame, string sourceFrame, double timeStamp, out Vector3 position, out Quaternion rotation)
     {
         targetFrame = targetFrame.Trim('/');
         sourceFrame = sourceFrame.Trim('/');
 
-        if (targetFrame == sourceFrame)
-        {
-            position = Vector3.zero;
-            rotation = Quaternion.identity;
-            return true;
-        }
-
-        List<TFNode> chain = new List<TFNode>();
-        string current = sourceFrame;
-        while (current != targetFrame)
-        {
-            if (!tfTree.ContainsKey(current))
-            {
-                Debug.LogWarning($"TFSubscriber: Could not find path from {sourceFrame} to {targetFrame}.");
-                position = Vector3.zero;
-                rotation = Quaternion.identity;
-                return false;
-            }
-
-            var node = tfTree[current];
-            chain.Add(node);
-            current = node.parent;
-
-            // Prevent infinite loops due to cyclic TFs
-            if (chain.Count > 20)
-            {
-                Debug.LogError("TFSubscriber: Possible loop detected in TF chain.");
-                break;
-            }
-        }
-
-        // Apply the transform chain from root to leaf
         position = Vector3.zero;
         rotation = Quaternion.identity;
 
+        if (targetFrame == sourceFrame)
+            return true;
+
+        var chain = new List<TFNode>();
+        string current = sourceFrame;
+        int safety = 0;
+        while (current != targetFrame && safety++ < 50)
+        {
+            if (!tfHistory.TryGetValue(current, out var list) || list.Count == 0)
+                return false;
+
+            TFNode best = list
+                .Where(n => n.time <= timeStamp || n.isStatic)
+                .OrderByDescending(n => n.time)
+                .FirstOrDefault();
+            if (best == null) return false;
+
+            double tfAge = timeStamp - best.time;
+            if (tfAge > 1.0)
+            {
+                Debug.LogWarning($"TF too old! Age: {tfAge:F2}s (TF time: {best.time:F2}, cloud time: {timeStamp:F2})");
+            }
+
+            // Debug.Log($"TF Selected: {best.parent} -> {current}, TF Time: {best.time:F9}, Cloud Time: {timeStamp:F9}");
+
+            chain.Add(best);
+            current = best.parent;
+        }
+
+        if (current != targetFrame)
+            return false;
+
+        position = Vector3.zero;
+        rotation = Quaternion.identity;
         for (int i = chain.Count - 1; i >= 0; i--)
         {
-            position = chain[i].rotation * position + chain[i].position;
-            rotation = chain[i].rotation * rotation;
+            var n = chain[i];
+            position = n.rotation * position + n.position;
+            rotation = n.rotation * rotation;
         }
 
-        Debug.Log($"TFSubscriber: Transform from {sourceFrame} to {targetFrame} resolved. Pos={position}, Rot={rotation.eulerAngles}");
         return true;
-    }
-
-    /// <summary>
-    /// Optional debug method to print the current TF tree.
-    /// Useful for understanding how frames are linked.
-    /// </summary>
-    public void PrintTFGraph()
-    {
-        Debug.Log("----- TF Tree -----");
-        foreach (var kvp in tfTree)
-        {
-            string child = kvp.Key;
-            TFNode node = kvp.Value;
-            Debug.Log($"TF: {node.parent} -> {child} | Pos: {node.position}, Rot: {node.rotation.eulerAngles}, t={node.time:F2}, Static={node.isStatic}");
-        }
-        Debug.Log("------------------------");
-    }
-
-    void Update()
-    {
-        // You can uncomment this line for periodic TF tree debugging
-        // PrintTFGraph();
     }
 }

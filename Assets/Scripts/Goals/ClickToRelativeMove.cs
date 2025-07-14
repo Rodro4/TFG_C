@@ -10,10 +10,10 @@ public class ClickToRelativeMove : MonoBehaviour
     public YawSubscriber yawSubscriber;
 
     [Header("Movement Parameters")]
-    public float linearSpeed = 0.2f;
-    public float angularSpeed = 0.5f;
+    public float linearSpeed = 0.8f;
+    public float angularSpeed = 1.0f;
     public float angularThresholdDeg = 2f;
-    public float stopDelay = 0.1f;
+    public float stopDelay = 0.2f;
     public float angularKp = 2.0f;
 
     private void Start()
