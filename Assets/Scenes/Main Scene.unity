@@ -9657,6 +9657,8 @@ GameObject:
   - component: {fileID: 978715135}
   - component: {fileID: 978715127}
   - component: {fileID: 978715125}
+  - component: {fileID: 978715137}
+  - component: {fileID: 978715136}
   m_Layer: 0
   m_Name: RosConnector
   m_TagString: Untagged
@@ -9680,7 +9682,7 @@ MonoBehaviour:
   SecondsTimeout: 10
   Serializer: 0
   protocol: 0
-  RosBridgeServerUrl: ws://172.23.249.255:9090
+  RosBridgeServerUrl: ws://172.31.231.21:9090
 --- !u!4 &978715114
 Transform:
   m_ObjectHideFlags: 0
@@ -9911,6 +9913,38 @@ MonoBehaviour:
   voxelSize: 0.05
   maxParticles: 1000000
   pointSkip: 5
+--- !u!114 &978715136
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 978715112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 804366901a1eb6147bad59612505348e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  topic: /audio_in
+  sampleRate: 44100
+  volume: 1.3
+--- !u!114 &978715137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 978715112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a76325d5ccf67594d863d750c8a23462, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  topic: /audio_out
+  deviceName: "Micr\xF3fono (Yeti Nano)"
+  sampleRate: 44100
+  bufferSeconds: 1
+  readDelaySec: 0.1
 --- !u!1 &981944401
 GameObject:
   m_ObjectHideFlags: 8
@@ -10275,7 +10309,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-    m_Reference: {fileID: -3599823989380923159, guid: 0be0028c24f2a4c14a96b6aa39055933, type: 3}
+    m_Reference: {fileID: -7468240641461506114, guid: c348712bda248c246b8c49b3db54643f, type: 3}
 --- !u!1 &998454257
 GameObject:
   m_ObjectHideFlags: 0
@@ -13860,6 +13894,50 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GeometryType: 1
+--- !u!1 &1272470669
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1272470671}
+  - component: {fileID: 1272470670}
+  m_Layer: 0
+  m_Name: ListMicsBorrar
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1272470670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1272470669}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b4fafdbddf563e42b959d84bf48faf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1272470671
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1272470669}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1284509252
 GameObject:
   m_ObjectHideFlags: 8
@@ -23555,3 +23633,4 @@ SceneRoots:
   - {fileID: 1833926443}
   - {fileID: 497079484}
   - {fileID: 1631077439}
+  - {fileID: 1272470671}

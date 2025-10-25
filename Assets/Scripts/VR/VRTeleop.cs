@@ -30,13 +30,31 @@ public class VRTeleop : UnityPublisher<Twist>
         base.Start();
         InitializeMessage();
 
+        // Inicio
+        Debug.Log($"[VRTeleop] Start() -> Inicializando. Modo inicial: {(isRobotMode ? "ROBOT" : "PLAYER")}");
+
         // Hook up UI sliders
-        if (linearSlider != null) linearSlider.onValueChanged.AddListener(SetLinearSpeed);
-        if (angularSlider != null) angularSlider.onValueChanged.AddListener(SetAngularSpeed);
+        if (linearSlider != null)
+        {
+            linearSlider.onValueChanged.AddListener(SetLinearSpeed);
+            Debug.Log("[VRTeleop] Linear slider conectado correctamente.");
+        }
+        else Debug.LogWarning("[VRTeleop]  Linear slider no asignado.");
+
+        if (angularSlider != null)
+        {
+            angularSlider.onValueChanged.AddListener(SetAngularSpeed);
+            Debug.Log("[VRTeleop] Angular slider conectado correctamente.");
+        }
+        else Debug.LogWarning("[VRTeleop]  Angular slider no asignado.");
 
         // Hook up the mode switch button
         if (switchModeButton != null)
+        {
             switchModeButton.onClick.AddListener(SwitchMode);
+            Debug.Log("[VRTeleop] Botón de cambio de modo (UI) conectado correctamente.");
+        }
+        else Debug.LogWarning("[VRTeleop]  No se ha asignado el botón de cambio de modo (UI).");
 
         UpdateModeState();
     }
@@ -47,6 +65,9 @@ public class VRTeleop : UnityPublisher<Twist>
         {
             UpdateMessageFromInput();
             Publish(message);
+
+            // Verificar publicación de mensajes Twist
+            Debug.Log($"[VRTeleop] Publicando Twist -> linear.x={message.linear.x:F2}, angular.z={message.angular.z:F2}");    
         }
     }
 
@@ -57,43 +78,84 @@ public class VRTeleop : UnityPublisher<Twist>
             linear = new RosSharp.RosBridgeClient.MessageTypes.Geometry.Vector3(),
             angular = new RosSharp.RosBridgeClient.MessageTypes.Geometry.Vector3()
         };
+        Debug.Log("[VRTeleop] Twist message inicializado correctamente.");
     }
 
     private void UpdateMessageFromInput()
     {
+        if (moveAction == null || moveAction.action == null)
+        {
+            Debug.LogWarning("[VRTeleop]  moveAction no asignado o sin acción válida.");
+            return;
+        }
+
         Vector2 input = moveAction.action.ReadValue<Vector2>();
+
+        // Mostrar el valor del joystick si hay movimiento
+        if (input != Vector2.zero)
+            Debug.Log($"[VRTeleop] Input joystick detectado -> X={input.x:F2}, Y={input.y:F2}");
 
         message.linear.x = input.y * linearSpeed;
         message.angular.z = -input.x * angularSpeed;
     }
 
-    public void SetLinearSpeed(float value) => linearSpeed = value;
+    public void SetLinearSpeed(float value)
+    {
+        linearSpeed = value;
+        Debug.Log($"[VRTeleop] LinearSpeed actualizado -> {linearSpeed:F2}");
+    }
 
-    public void SetAngularSpeed(float value) => angularSpeed = value;
+    public void SetAngularSpeed(float value)
+    {
+        angularSpeed = value;
+        Debug.Log($"[VRTeleop] AngularSpeed actualizado -> {angularSpeed:F2}");
+    }
 
     // Método para cambiar entre modos
     public void SwitchMode()
     {
         isRobotMode = !isRobotMode;
+        Debug.Log($"[VRTeleop] Cambio de modo solicitado. Nuevo modo: {(isRobotMode ? "ROBOT" : "PLAYER")}");
         UpdateModeState();
     }
 
     // Activar/desactivar las acciones correctas según el modo
     private void UpdateModeState()
     {
-        var playerMove = inputActions.FindAction("Move", true);
-        var robotMove = inputActions.FindAction("Move Robot", true);
+        // Comprobar que el asset está asignado
+        if (inputActions == null)
+        {
+            Debug.LogError("[VRTeleop]  InputActionAsset no asignado. No se pueden activar/desactivar acciones.");
+            return;
+        }
+
+        var playerMove = inputActions.FindAction("Move", false);
+        var robotMove = inputActions.FindAction("Move Robot", false);
+
+        if (playerMove == null)
+            Debug.LogWarning("[VRTeleop]  No se ha encontrado la acción 'Move' en el asset.");
+        if (robotMove == null)
+            Debug.LogWarning("[VRTeleop]  No se ha encontrado la acción 'Move Robot' en el asset.");
 
         if (isRobotMode)
         {
-            playerMove.Disable();
-            robotMove.Enable();
+            if (playerMove != null) playerMove.Disable();
+            if (robotMove != null) robotMove.Enable();
         }
         else
         {
-            robotMove.Disable();
-            playerMove.Enable();
+            if (robotMove != null) robotMove.Disable();
+            if (playerMove != null) playerMove.Enable();
         }
+
+        // Resumen tras aplicar cambios
+        Debug.Log($"[VRTeleop] UpdateModeState() -> Modo actual: {(isRobotMode ? "ROBOT" : "PLAYER")}");
+        Debug.Log($"[VRTeleop]    PlayerMove.enabled={(playerMove != null ? playerMove.enabled : false)}");
+        Debug.Log($"[VRTeleop]    RobotMove.enabled={(robotMove != null ? robotMove.enabled : false)}");
+
+        if (moveAction != null && moveAction.action != null)
+            Debug.Log($"[VRTeleop]    moveAction actualmente asignada a: '{moveAction.action.name}'");
+        else
+            Debug.LogWarning("[VRTeleop]  moveAction.action es nula o no está asignada.");
     }
 }
-

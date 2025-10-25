@@ -114,10 +114,8 @@ public class TFSubscriber : MonoBehaviour
             double tfAge = timeStamp - best.time;
             if (tfAge > 1.0)
             {
-                Debug.LogWarning($"TF too old! Age: {tfAge:F2}s (TF time: {best.time:F2}, cloud time: {timeStamp:F2})");
+               Debug.LogWarning($"TF too old! Age: {tfAge:F2}s (TF time: {best.time:F2}, cloud time: {timeStamp:F2})");
             }
-
-            // Debug.Log($"TF Selected: {best.parent} -> {current}, TF Time: {best.time:F9}, Cloud Time: {timeStamp:F9}");
 
             chain.Add(best);
             current = best.parent;
