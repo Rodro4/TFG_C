@@ -99,8 +99,8 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
             if (z <= 0.01f || z > 10f)
                 continue;
 
-            Vector3 worldPos = new Vector3(-y, z, x);
-            positions[validPoints] = worldPos;
+            Vector3 worldPos = new Vector3(x, y, z);
+            positions[validPoints] = new Vector3(-worldPos.y, worldPos.z, worldPos.x);
 
             float h = Mathf.Clamp(worldPos.y, 0f, 2.0f);
             float t = h / 2.0f;

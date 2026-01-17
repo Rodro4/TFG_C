@@ -22,6 +22,8 @@ public class PointCloud2ParticleSubscriber : MonoBehaviour
 
     private int currentPointCount = 0;
 
+    private TfManager tfManager;
+
     void Start()
     {
         var rosConnector = FindObjectOfType<RosConnector>();
@@ -55,6 +57,8 @@ public class PointCloud2ParticleSubscriber : MonoBehaviour
         particles = new ParticleSystem.Particle[MaxPoints];
         positions = new Vector3[MaxPoints];
         colors = new Color32[MaxPoints];
+
+        tfManager = FindObjectOfType<TfManager>();
     }
 
     private void ReceivePointCloud(PointCloud2 msg)
@@ -99,8 +103,36 @@ public class PointCloud2ParticleSubscriber : MonoBehaviour
             if (z <= 0.01f || z > 10f)
                 continue;
 
-            // Corrección de ejes ROS ? Unity
-            positions[validPoints] = new Vector3(x, -y, z);
+
+            
+            Vector3 pRos = new Vector3(-y, z, x);
+
+
+            if (tfManager.TryTransformPoint(
+    pRos,
+    msg.header.frame_id,
+    "odom",
+    out Vector3 pOdomRos)
+)
+            {
+                Vector3 pUnity = new Vector3(
+    pOdomRos.x,
+    pOdomRos.y,
+    pOdomRos.z
+);
+
+
+                positions[validPoints] = pUnity;
+            }
+
+            else
+            {
+                continue;
+            }
+
+
+
+
 
             Color32 col = new Color32(255, 255, 255, 255);
 
@@ -137,10 +169,6 @@ public class PointCloud2ParticleSubscriber : MonoBehaviour
         ParticleSystem.SetParticles(particles, currentPointCount);
     }
 }
-
-
-
-
 
 
 
