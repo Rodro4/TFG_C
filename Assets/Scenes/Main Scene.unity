@@ -3240,6 +3240,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 189d6b925c866fe45ba149e25c8de6e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &348027105
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 348027107}
+  - component: {fileID: 348027106}
+  m_Layer: 0
+  m_Name: PersistentVoxelMap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &348027106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 348027105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 162fd764d6789804d8211d099c473d87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  voxelSize: 0.05
+--- !u!4 &348027107
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 348027105}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &355023363
 GameObject:
   m_ObjectHideFlags: 0
@@ -9577,7 +9622,6 @@ GameObject:
   - component: {fileID: 978715129}
   - component: {fileID: 978715131}
   - component: {fileID: 978715125}
-  - component: {fileID: 978715127}
   - component: {fileID: 978715132}
   m_Layer: 0
   m_Name: RosConnector
@@ -9602,7 +9646,7 @@ MonoBehaviour:
   SecondsTimeout: 10
   Serializer: 0
   protocol: 0
-  RosBridgeServerUrl: ws://172.28.0.231:9090
+  RosBridgeServerUrl: ws://172.20.114.74:9090
 --- !u!4 &978715114
 Transform:
   m_ObjectHideFlags: 0
@@ -9754,20 +9798,6 @@ MonoBehaviour:
   TimeStep: 0
   EnsureThreadSafety: 0
   MapFrame: map
---- !u!114 &978715127
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 978715112}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7b1d4d64fc091b040b6897aba8a8b34a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  tfTopic: /tf
-  tfStaticTopic: /tf_static
 --- !u!114 &978715129
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23390,3 +23420,4 @@ SceneRoots:
   - {fileID: 497079484}
   - {fileID: 343910370}
   - {fileID: 1240594413}
+  - {fileID: 348027107}
