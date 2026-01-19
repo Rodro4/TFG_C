@@ -22,6 +22,14 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
 
     private int currentPointCount = 0;
 
+    [Header("Altura para color")]
+    public float alturaMin = 0f;
+    public float alturaMax = 1.25f;
+
+    [Header("Gradiente por altura")]
+    public Gradient miGradiente;
+
+
     void Start()
     {
         var rosConnector = FindObjectOfType<RosConnector>();
@@ -102,12 +110,18 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
             Vector3 worldPos = new Vector3(x, y, z);
             positions[validPoints] = new Vector3(-worldPos.y, worldPos.z, worldPos.x);
 
-            float h = Mathf.Clamp(worldPos.y, 0f, 2.0f);
-            float t = h / 2.0f;
-            byte intensity = (byte)Mathf.Lerp(80, 255, t);
+            // Altura real del OctoMap (ROS Z)
+            float h = worldPos.z;
 
-            Color32 col = new Color32(intensity, intensity, intensity, 255);
-            colors[validPoints] = col;
+            // Normalizar altura a [0,1]
+            float t = Mathf.InverseLerp(alturaMin, alturaMax, h);
+
+            // Seguridad extra (por si acaso)
+            t = Mathf.Clamp01(t);
+
+            Color col = miGradiente.Evaluate(t);
+
+            colors[validPoints] = (Color32)col;
 
             validPoints++;
         }
