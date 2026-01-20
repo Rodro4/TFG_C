@@ -3,7 +3,6 @@ using RosSharp.RosBridgeClient.MessageTypes.Tf2;
 using System.Collections.Generic;
 using UnityEngine;
 
-// ===== Aliases claros =====
 using UnityVector3 = UnityEngine.Vector3;
 using UnityQuaternion = UnityEngine.Quaternion;
 
@@ -34,7 +33,7 @@ public class TfManager : MonoBehaviour
         foreach (var tf in msg.transforms)
         {
             tfTree[tf.child_frame_id] = tf;
-            Debug.Log($"TF recibido: {tf.header.frame_id} -> {tf.child_frame_id}");
+            //Debug.Log($"TF recibido: {tf.header.frame_id} -> {tf.child_frame_id}");
         }
     }
 

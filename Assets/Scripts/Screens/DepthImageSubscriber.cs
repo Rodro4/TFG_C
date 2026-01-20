@@ -49,7 +49,7 @@ namespace RosSharp.RosBridgeClient
                 depthValues[i] = depth;
             }
 
-            Debug.Log("Encoding: " + image.encoding);
+            //Debug.Log("Encoding: " + image.encoding);
 
             isMessageReceived = true;
         }

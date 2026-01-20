@@ -1026,6 +1026,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
+                },
+                {
+                    "name": "Move Robot",
+                    "type": "Value",
+                    "id": "8ab6c75f-cd9e-4b2e-9cb2-2480153093e3",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -1114,6 +1123,17 @@
                     "processors": "",
                     "groups": "Generic XR Controller",
                     "action": "Snap Turn",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b55f6ed3-e58f-43e4-b095-8bcc8a9f8287",
+                    "path": "<XRController>{LeftHand}/{Primary2DAxis}",
+                    "interactions": "",
+                    "processors": "StickDeadzone",
+                    "groups": "Continuous Move",
+                    "action": "Move Robot",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -2596,54 +2616,6 @@
                     "processors": "",
                     "groups": "",
                     "action": "Pinch Gap",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                }
-            ]
-        },
-        {
-            "name": "Robot Controls",
-            "id": "acb682ba-e368-4860-b57a-c6832b6f9525",
-            "actions": [
-                {
-                    "name": "Move Robot",
-                    "type": "Value",
-                    "id": "3c84939c-b83d-42ac-aafd-8d7efda86393",
-                    "expectedControlType": "Vector2",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": true
-                },
-                {
-                    "name": "SelectPixelVR",
-                    "type": "Button",
-                    "id": "65d61f0e-5665-4941-8c43-6f1a05951467",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "Press",
-                    "initialStateCheck": false
-                }
-            ],
-            "bindings": [
-                {
-                    "name": "",
-                    "id": "bee4f9e5-0e47-4a67-b82a-e5cf2982e482",
-                    "path": "<XRController>{LeftHand}/thumbstick",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Move Robot",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "e75947f8-18bb-4373-9692-06ece21473eb",
-                    "path": "<XRController>{RightHand}/primaryButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "SelectPixelVR",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

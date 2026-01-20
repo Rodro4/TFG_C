@@ -1,8 +1,12 @@
 using UnityEngine;
+using TMPro;
 
 public class UIManager : MonoBehaviour
 {
-    private bool isCabinMode = true;
+    // --------------------
+    // CAMERA / SCREEN UI
+    // --------------------
+
     private VREyeFeed eyeFeed;
 
     [Header("Display Screens")]
@@ -11,56 +15,93 @@ public class UIManager : MonoBehaviour
 
     private bool showingRGB = true;
 
+    // --------------------
+    // 3D MAP UI
+    // --------------------
+
+    [Header("3D Maps")]
+    [Tooltip("PointCloud + PersistentVoxelMap")]
+    public GameObject[] pointCloudObjects;
+
+    public GameObject octoMap;
+    public GameObject occupancyMap;
+
+    [Header("UI Elements")]
+    public TMP_Dropdown mapDropdown;
+
     void Start()
     {
-        // Find the VREyeFeed component in the scene
         eyeFeed = FindObjectOfType<VREyeFeed>();
-
         if (eyeFeed == null)
-        {
-            Debug.LogWarning("UIManager: VREyeFeed component not found in the scene.");
-        }
+            Debug.LogWarning("UIManager: VREyeFeed component not found.");
 
-        SetScreenState(rgb: true);
+        SetScreenState(true);
+        SetActiveMap(0);
+
+        if (mapDropdown != null)
+            mapDropdown.onValueChanged.AddListener(SetActiveMap);
     }
 
-    // Toggles between cabin mode and immersive mode
-    public void ToggleMode()
-    {
-        isCabinMode = !isCabinMode;
-        Debug.Log("UIManager: Mode switched to: " + (isCabinMode ? "Cabin" : "Immersive"));
+    // --------------------
+    // RGB / DEPTH
+    // --------------------
 
-        if (eyeFeed != null)
-        {
-            eyeFeed.SetImmersiveMode(!isCabinMode);
-        }
-    }
-
-    // Toggles between showing the RGB feed and the depth feed
     public void ToggleScreen()
     {
         showingRGB = !showingRGB;
         SetScreenState(showingRGB);
 
-        // Update the screen source in VREyeFeed
         if (eyeFeed != null)
             eyeFeed.SetScreenSource(showingRGB);
     }
 
-    // Activates the specified screen and deactivates the other
     private void SetScreenState(bool rgb)
     {
         if (rgbScreen != null) rgbScreen.SetActive(rgb);
         if (depthScreen != null) depthScreen.SetActive(!rgb);
-        Debug.Log("UIManager: Current screen: " + (rgb ? "RGB" : "Depth"));
+
+        Debug.Log("UIManager: Current screen -> " + (rgb ? "RGB" : "Depth"));
     }
 
-    void Update()
+    // --------------------
+    // 3D MAP SELECTION
+    // --------------------
+
+    public void SetActiveMap(int index)
     {
-        // Emergency key to toggle back to cabin mode
-        if (Input.GetKeyDown(KeyCode.M))
+        // PointCloud (varios objetos)
+        SetGroupActive(pointCloudObjects, index == 0);
+
+        // OctoMap
+        if (octoMap != null)
+            octoMap.SetActive(index == 1);
+
+        // Occupancy
+        if (occupancyMap != null)
+            occupancyMap.SetActive(index == 2);
+
+        Debug.Log($"UIManager: Mapa 3D activo -> {GetMapName(index)}");
+    }
+
+    private void SetGroupActive(GameObject[] group, bool active)
+    {
+        if (group == null) return;
+
+        foreach (var go in group)
         {
-            ToggleMode();
+            if (go != null)
+                go.SetActive(active);
         }
+    }
+
+    private string GetMapName(int index)
+    {
+        return index switch
+        {
+            0 => "PointCloud (+ PersistentVoxelMap)",
+            1 => "OctoMap",
+            2 => "OccupancyMap",
+            _ => "Unknown"
+        };
     }
 }
