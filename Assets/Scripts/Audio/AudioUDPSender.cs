@@ -1,16 +1,26 @@
+using RosSharp.RosBridgeClient;
+using System;
 using System.Net.Sockets;
 using UnityEngine;
 
 public class AudioUDPSender : MonoBehaviour
 {
-    UdpClient udp;
-    string ip = "192.168.1.148";
-    int port = 5004;
-    const int sampleRate = 44100;
-     
+    private UdpClient udp;
+    private string ip;
+    private int port = 5004;
+    private const int sampleRate = 44100;
+
+    public RosConnector rosConnector;
+
     void Start()
     {
         udp = new UdpClient();
+
+        string rosUrl = rosConnector.RosBridgeServerUrl; // ws://192.168.1.147:9090
+        Uri uri = new Uri(rosUrl);
+        ip = uri.Host;
+        Debug.Log("IP: " + ip);
+
         AudioClip mic = Microphone.Start(null, true, 1, sampleRate);
         GetComponent<AudioSource>().clip = mic;
         GetComponent<AudioSource>().loop = true;

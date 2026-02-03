@@ -10,7 +10,7 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
     [Tooltip("Máximo número absoluto de puntos a mostrar")]
     public int MaxPoints = 400000;
 
-    [Tooltip("Salto para muestrear puntos. 1 = usar todos, 2 = 1 de cada 2, etc.")]
+    [Tooltip("Salto para muestrear puntos. 1 = usar todos, 2 = 1 de cada 2, etc")]
     public int PointSkip = 10;
 
     private RosSocket rosSocket;
@@ -113,10 +113,10 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
             // Altura real del OctoMap (ROS Z)
             float h = worldPos.z;
 
-            // Normalizar altura a [0,1]
+            // Normalizar altura a 0-1
             float t = Mathf.InverseLerp(alturaMin, alturaMax, h);
 
-            // Seguridad extra (por si acaso)
+            // Por si acaso clampeamos entre 0 y 1
             t = Mathf.Clamp01(t);
 
             Color col = miGradiente.Evaluate(t);

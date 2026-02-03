@@ -13,12 +13,11 @@ public class TurtlebotMotorController : MonoBehaviour
 
     void Start()
     {
-        // Find the RosConnector component in the scene and get the RosSocket
         RosConnector connector = FindObjectOfType<RosConnector>();
         if (connector != null)
         {
             rosSocket = connector.RosSocket;
-            // Advertise the motor power topic
+
             motorPowerPublisherId = rosSocket.Advertise<Int16>(motorPowerTopic);
             Debug.Log("TurtlebotMotorController: Motor power topic advertised.");
         }

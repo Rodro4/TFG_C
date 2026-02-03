@@ -45,7 +45,7 @@ public class ClickToRelativeMove : MonoBehaviour
     // Performs two-step navigation: first rotation, then linear forward motion.
     private IEnumerator RotateThenMove(float relativeAngleRad, float forwardDuration)
     {
-        // --- PHASE 1: Rotation ---
+        // PHASE 1: Rotation
         float initialYaw = yawSubscriber.Yaw;
         float targetYaw = NormalizeAngleRad(initialYaw + relativeAngleRad);
 
@@ -65,7 +65,7 @@ public class ClickToRelativeMove : MonoBehaviour
         twistPublisher.Stop();
         yield return new WaitForSeconds(stopDelay);
 
-        // --- PHASE 2: Forward movement ---
+        // PHASE 2: Forward movement
         float elapsed = 0f;
         while (elapsed < forwardDuration)
         {

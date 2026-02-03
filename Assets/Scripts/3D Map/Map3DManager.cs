@@ -9,8 +9,8 @@ public class Map3DManager : MonoBehaviour
 
     void Start()
     {
-        // Estado inicial (por ejemplo PointCloud)
-        ShowPointCloud();
+        // Estado inicial
+        ShowOccupancyMap();
     }
 
     public void ShowPointCloud()

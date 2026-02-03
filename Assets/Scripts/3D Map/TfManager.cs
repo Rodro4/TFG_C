@@ -33,14 +33,10 @@ public class TfManager : MonoBehaviour
         foreach (var tf in msg.transforms)
         {
             tfTree[tf.child_frame_id] = tf;
-            //Debug.Log($"TF recibido: {tf.header.frame_id} -> {tf.child_frame_id}");
         }
     }
 
-    // =========================
     // TRANSFORMACIÓN DE PUNTOS
-    // =========================
-
     public bool TryTransformPoint(
         UnityVector3 pointRos,
         string fromFrame,
@@ -68,10 +64,7 @@ public class TfManager : MonoBehaviour
         return true;
     }
 
-    // =========================
     // CONSTRUCCIÓN DE CADENA TF
-    // =========================
-
     private bool BuildChain(
         string from,
         string to,
@@ -93,10 +86,7 @@ public class TfManager : MonoBehaviour
         return true;
     }
 
-    // =========================
     // CONVERSIÓN ROS -> UNITY
-    // =========================
-
     private UnityVector3 RosToUnity(RosVector3 v)
     {
         return new UnityVector3(

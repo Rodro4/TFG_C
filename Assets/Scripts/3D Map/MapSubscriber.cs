@@ -100,7 +100,7 @@ namespace RosSharp.RosBridgeClient
                         _ => Color.gray         // Unknown
                     };
 
-                    // Flip Y to match Unity texture coordinates (bottom-left origin
+                    // Flip Y to match Unity texture coordinates
                     texture.SetPixel(x, height - y - 1, pixelColor);
                 }
             }
