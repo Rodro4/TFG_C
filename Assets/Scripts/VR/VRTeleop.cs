@@ -6,31 +6,46 @@ using RosSharp.RosBridgeClient.MessageTypes.Geometry;
 
 public class VRTeleop : UnityPublisher<Twist>
 {
+    public enum POVMode
+    {
+        Cabin,
+        Outside,
+        FirstPersonRobot,
+        ThirdPersonRobot
+    }
+
+    [Header("Locomotion")]
+    public Behaviour playerLocomotion;
+
     [Header("Input")]
-    public InputActionAsset inputActions;   // XRI Default Input Actions
-
-    [Tooltip("Nombre exacto de la acción para mover al jugador")]
+    public InputActionAsset inputActions;
     public string playerMoveActionName = "Move";
-
-    [Tooltip("Nombre exacto de la acción para mover el robot")]
     public string robotMoveActionName = "Move Robot";
+    public string switchPovActionName = "Switch POV";
 
     private InputAction currentMoveAction;
+    private InputAction switchPovAction;
 
     [Header("Speed Settings")]
     public float linearSpeed = 0.8f;
     public float angularSpeed = 1.0f;
 
-    [Header("UI Sliders")]
+    [Header("UI")]
     public Slider linearSlider;
     public Slider angularSlider;
-
-    [Header("UI Buttons")]
     public Button switchModeButton;
+
+    [Header("POV System")]
+    public UnityEngine.Transform xrOrigin;
+    public UnityEngine.Transform cabinPoint;
+    public UnityEngine.Transform outsidePoint;
+    public UnityEngine.Transform robotURDF;
+    public UnityEngine.Vector3 thirdPersonOffset = new UnityEngine.Vector3(0, 2f, -3f);
+
+    private POVMode currentPov = POVMode.Cabin;
 
     private Twist message;
     private bool isRobotMode = false;
-
     private float lastSwitchTime = 0f;
     private const float switchCooldown = 0.3f;
 
@@ -38,8 +53,6 @@ public class VRTeleop : UnityPublisher<Twist>
     {
         base.Start();
         InitializeMessage();
-
-        Debug.Log($"[VRTeleop] Start() -> Modo inicial: PLAYER");
 
         if (linearSlider != null)
             linearSlider.onValueChanged.AddListener(SetLinearSpeed);
@@ -50,7 +63,25 @@ public class VRTeleop : UnityPublisher<Twist>
         if (switchModeButton != null)
             switchModeButton.onClick.AddListener(SwitchMode);
 
+        SetupInputActions();
         UpdateModeState();
+        UpdatePOV();
+    }
+
+    private void SetupInputActions()
+    {
+        if (inputActions == null)
+            return;
+
+        switchPovAction = inputActions.FindAction(switchPovActionName, true);
+        switchPovAction.Enable();
+        //switchPovAction.performed += ctx => CyclePOV();
+        switchPovAction.performed += ctx =>
+        {
+            Debug.Log("Switch POV pressed");
+            CyclePOV();
+        };
+
     }
 
     private void FixedUpdate()
@@ -64,12 +95,21 @@ public class VRTeleop : UnityPublisher<Twist>
         message.angular.z = -input.x * angularSpeed;
 
         Publish(message);
+    }
 
-        if (input != Vector2.zero)
+    private void Update()
+    {
+        if (currentPov == POVMode.FirstPersonRobot && robotURDF != null)
         {
-            Debug.Log(
-                $"[VRTeleop] Twist -> linear={message.linear.x:F2}, angular={message.angular.z:F2}"
-            );
+            xrOrigin.position = robotURDF.position;
+            xrOrigin.rotation = robotURDF.rotation;
+        }
+
+        if (currentPov == POVMode.ThirdPersonRobot && robotURDF != null)
+        {
+            UnityEngine.Vector3 desiredPos = robotURDF.TransformPoint(thirdPersonOffset);
+            xrOrigin.position = desiredPos;
+            xrOrigin.LookAt(robotURDF.position + UnityEngine.Vector3.up * 0.5f);
         }
     }
 
@@ -90,44 +130,58 @@ public class VRTeleop : UnityPublisher<Twist>
         lastSwitchTime = Time.time;
 
         isRobotMode = !isRobotMode;
-        Debug.Log($"[VRTeleop] Cambio de modo -> {(isRobotMode ? "ROBOT" : "PLAYER")}");
+
+        if (playerLocomotion != null)
+            playerLocomotion.enabled = !isRobotMode;
+
         UpdateModeState();
     }
 
 
     private void UpdateModeState()
     {
-        if (inputActions == null)
-        {
-            Debug.LogError("[VRTeleop] InputActionAsset no asignado.");
-            return;
-        }
-
-        // Desactivar acción anterior
         if (currentMoveAction != null)
             currentMoveAction.Disable();
 
         string actionName = isRobotMode ? robotMoveActionName : playerMoveActionName;
         currentMoveAction = inputActions.FindAction(actionName, true);
-
-        if (currentMoveAction == null)
-        {
-            Debug.LogError($"[VRTeleop] No se encontró la acción '{actionName}'.");
-            return;
-        }
-
         currentMoveAction.Enable();
-
-        Debug.Log($"[VRTeleop] Acción activa: {currentMoveAction.name} (enabled={currentMoveAction.enabled})");
     }
 
-    public void SetLinearSpeed(float value)
+    private void CyclePOV()
     {
-        linearSpeed = value;
+        currentPov = (POVMode)(((int)currentPov + 1) % 4);
+        UpdatePOV();
+        Debug.Log($"[VRTeleop] POV cambiado a: {currentPov}");
     }
 
-    public void SetAngularSpeed(float value)
+    private void UpdatePOV()
     {
-        angularSpeed = value;
+        if (xrOrigin == null)
+            return;
+
+        switch (currentPov)
+        {
+            case POVMode.Cabin:
+                xrOrigin.position = cabinPoint.position;
+                xrOrigin.rotation = cabinPoint.rotation;
+                break;
+
+            case POVMode.Outside:
+                xrOrigin.position = outsidePoint.position;
+                xrOrigin.rotation = outsidePoint.rotation;
+                break;
+
+            case POVMode.FirstPersonRobot:
+                // Se actualiza continuamente en Update()
+                break;
+
+            case POVMode.ThirdPersonRobot:
+                // Se actualiza continuamente en Update()
+                break;
+        }
     }
+
+    public void SetLinearSpeed(float value) => linearSpeed = value;
+    public void SetAngularSpeed(float value) => angularSpeed = value;
 }
