@@ -14,6 +14,9 @@ public class VRTeleop : UnityPublisher<Twist>
         ThirdPersonRobot
     }
 
+    [Header("Player Physics")]
+    public CharacterController playerCharacterController;
+
     [Header("Locomotion")]
     public Behaviour playerLocomotion;
 
@@ -99,12 +102,6 @@ public class VRTeleop : UnityPublisher<Twist>
 
     private void Update()
     {
-        if (currentPov == POVMode.FirstPersonRobot && robotURDF != null)
-        {
-            xrOrigin.position = robotURDF.position;
-            xrOrigin.rotation = robotURDF.rotation;
-        }
-
         if (currentPov == POVMode.ThirdPersonRobot && robotURDF != null)
         {
             UnityEngine.Vector3 desiredPos = robotURDF.TransformPoint(thirdPersonOffset);
@@ -129,13 +126,27 @@ public class VRTeleop : UnityPublisher<Twist>
 
         lastSwitchTime = Time.time;
 
-        isRobotMode = !isRobotMode;
+        SetRobotControl(!isRobotMode);
+    }
 
+
+
+    private void SetRobotControl(bool active)
+    {
+        if (active) InputSystem.ResetHaptics();
+        isRobotMode = active;
+
+        // Activar/desactivar locomoción jugador
         if (playerLocomotion != null)
-            playerLocomotion.enabled = !isRobotMode;
+            playerLocomotion.enabled = !active;
+
+        // Desactivar físicas del player
+        if (playerCharacterController != null)
+            playerCharacterController.enabled = !active;
 
         UpdateModeState();
     }
+
 
 
     private void UpdateModeState()
@@ -151,9 +162,18 @@ public class VRTeleop : UnityPublisher<Twist>
     private void CyclePOV()
     {
         currentPov = (POVMode)(((int)currentPov + 1) % 4);
+
+        bool robotPOV =
+            currentPov == POVMode.FirstPersonRobot ||
+            currentPov == POVMode.ThirdPersonRobot;
+
+        SetRobotControl(robotPOV);
+
+
         UpdatePOV();
         Debug.Log($"[VRTeleop] POV cambiado a: {currentPov}");
     }
+
 
     private void UpdatePOV()
     {
@@ -163,24 +183,31 @@ public class VRTeleop : UnityPublisher<Twist>
         switch (currentPov)
         {
             case POVMode.Cabin:
+                xrOrigin.SetParent(null);
                 xrOrigin.position = cabinPoint.position;
                 xrOrigin.rotation = cabinPoint.rotation;
                 break;
 
             case POVMode.Outside:
+                xrOrigin.SetParent(null);
                 xrOrigin.position = outsidePoint.position;
                 xrOrigin.rotation = outsidePoint.rotation;
                 break;
 
             case POVMode.FirstPersonRobot:
-                // Se actualiza continuamente en Update()
+                xrOrigin.SetParent(robotURDF);
+                xrOrigin.localPosition = UnityEngine.Vector3.zero;
+                xrOrigin.localRotation = UnityEngine.Quaternion.identity;
                 break;
 
             case POVMode.ThirdPersonRobot:
-                // Se actualiza continuamente en Update()
+                xrOrigin.SetParent(robotURDF);
+                xrOrigin.localPosition = thirdPersonOffset;
+                xrOrigin.localRotation = UnityEngine.Quaternion.identity;
                 break;
         }
     }
+
 
     public void SetLinearSpeed(float value) => linearSpeed = value;
     public void SetAngularSpeed(float value) => angularSpeed = value;
