@@ -28,12 +28,12 @@ public class AudioSenderMobile : MonoBehaviour
     {
         if (Microphone.devices.Length == 0)
         {
-            Debug.LogError("No hay micrófono detectado");
+            //Debug.LogError("No hay micrófono detectado");
             return;
         }
 
         micName = Microphone.devices[0];
-        Debug.Log("Usando micrófono: " + micName);
+        //Debug.Log("Usando micrófono: " + micName);
 
         udp = new UdpClient();
         udp.Connect(targetIP, targetPort);
@@ -49,14 +49,14 @@ public class AudioSenderMobile : MonoBehaviour
 
     System.Collections.IEnumerator WaitForMic()
     {
-        Debug.Log("Esperando micrófono...");
+        //Debug.Log("Esperando micrófono...");
 
         while (Microphone.GetPosition(micName) <= 0)
             yield return null;
 
         lastSamplePosition = 0;
 
-        Debug.Log("Micrófono listo para enviar audio");
+        //Debug.Log("Micrófono listo para enviar audio");
     }
 
     void Update()

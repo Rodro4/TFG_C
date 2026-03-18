@@ -21,13 +21,13 @@ public class AudioReceiverMobile : MonoBehaviour
         var config = AudioSettings.GetConfiguration();
         config.sampleRate = sampleRate;
         AudioSettings.Reset(config);
-        Debug.Log(taag + " Sample rate configurado a " + sampleRate);
+        //Debug.Log(taag + " Sample rate configurado a " + sampleRate);
     }
 
     void Start()
     {
         Application.runInBackground = true;
-        Debug.Log(taag + " AudioReceiver listening on port " + port);
+        //Debug.Log(taag + " AudioReceiver listening on port " + port);
 
 
         udp = new UdpClient(port);
@@ -38,7 +38,7 @@ public class AudioReceiverMobile : MonoBehaviour
         if (!audioSource.isPlaying)
         {
             audioSource.Play();
-            Debug.Log(taag + " AudioSource iniciado");
+            //Debug.Log(taag + " AudioSource iniciado");
         }
     }
 
@@ -62,7 +62,7 @@ public class AudioReceiverMobile : MonoBehaviour
                     audioQueue.Enqueue(sample);
                 }
 
-                Debug.Log(taag + $" Samples en cola: {audioQueue.Count}");
+                //Debug.Log(taag + $" Samples en cola: {audioQueue.Count}");
             }
             catch (ObjectDisposedException)
             {
@@ -97,12 +97,12 @@ public class AudioReceiverMobile : MonoBehaviour
                     data[i + c] = 0f;
             }
         }
-        Debug.Log(taag + $" OnAudioFilterRead llamado, buffer length: {data.Length}, cola restante: {audioQueue.Count}");
+        //Debug.Log(taag + $" OnAudioFilterRead llamado, buffer length: {data.Length}, cola restante: {audioQueue.Count}");
     }
 
     void OnApplicationQuit()
     {
         udp?.Close();
-        Debug.Log(taag + " UDP cerrado");
+        //Debug.Log(taag + " UDP cerrado");
     }
 }
