@@ -13,8 +13,6 @@ MonoBehaviour:
   m_Name: Standalone
   m_EditorClassIdentifier: 
   features:
-  - {fileID: 5033255652420821313}
-  - {fileID: -1069834681288140333}
   - {fileID: -3937691707250127760}
   - {fileID: 6621472842651278451}
   - {fileID: -8827288947405264233}
@@ -23,6 +21,7 @@ MonoBehaviour:
   - {fileID: -8795324009728988900}
   - {fileID: 4260007208897988464}
   - {fileID: -1818012376461864876}
+  - {fileID: 5033255652420821313}
   - {fileID: 5885114287327571271}
   - {fileID: 6687772011416924715}
   - {fileID: -8184035492909477321}
@@ -31,6 +30,7 @@ MonoBehaviour:
   - {fileID: 4676928141457875448}
   - {fileID: -762329499976827445}
   - {fileID: 5103146863695004222}
+  - {fileID: -1069834681288140333}
   m_renderMode: 0
   m_autoColorSubmissionMode: 1
   m_colorSubmissionModes:
@@ -296,6 +296,7 @@ MonoBehaviour:
   - {fileID: -4344703607601201699}
   - {fileID: 7095825471724527787}
   - {fileID: 4014991207230248844}
+  - {fileID: 5400514009732690496}
   - {fileID: 4082282717054863346}
   - {fileID: 2213981874741930076}
   - {fileID: -5460441636134051522}
@@ -303,6 +304,7 @@ MonoBehaviour:
   - {fileID: 8177902978041683225}
   - {fileID: 1334691749400929486}
   - {fileID: -2973697649088880092}
+  - {fileID: 6241101529264566433}
   m_renderMode: 1
   m_autoColorSubmissionMode: 1
   m_colorSubmissionModes:
@@ -649,11 +651,11 @@ MonoBehaviour:
   m_Name: MetaQuestTouchPlusControllerProfile Android
   m_EditorClassIdentifier: 
   m_enabled: 0
-  nameUi: 
-  version: 
-  featureIdInternal: 
-  openxrExtensionStrings: 
-  company: 
+  nameUi: Meta Quest Touch Plus Controller Profile
+  version: 0.0.1
+  featureIdInternal: com.unity.openxr.feature.input.metaquestplus
+  openxrExtensionStrings: XR_META_touch_controller_plus
+  company: Unity
   priority: 0
   required: 0
 --- !u!114 &5885114287327571271
@@ -689,11 +691,11 @@ MonoBehaviour:
   m_Name: XrPerformanceSettingsFeature Android
   m_EditorClassIdentifier: 
   m_enabled: 0
-  nameUi: 
-  version: 
-  featureIdInternal: 
-  openxrExtensionStrings: 
-  company: 
+  nameUi: XR Performance Settings
+  version: 1.0.0
+  featureIdInternal: com.unity.openxr.feature.extension.performance_settings
+  openxrExtensionStrings: XR_EXT_performance_settings
+  company: Unity
   priority: 0
   required: 0
 --- !u!114 &6621472842651278451

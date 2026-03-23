@@ -55,6 +55,7 @@ public class WebCamMobile : MonoBehaviour
         if (newFrame)
         {
             cameraTexture.LoadImage(latestFrame);
+            cameraTexture.Apply();
             rend.material.mainTexture = cameraTexture;
             newFrame = false;
         }
