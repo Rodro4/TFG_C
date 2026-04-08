@@ -4,11 +4,9 @@ using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
-    [Header("Display Screens")]
-    public GameObject rgbScreen;
-    public GameObject depthScreen;
-
-    private bool showingRGB = true;
+    [Header("Image Receiver")]
+    public RGBDImageReceiverUDP imageReceiver;
+    private bool showingRGB = true; 
 
     [Header("3D Maps")]
     public GameObject[] pointCloudObjects;
@@ -30,8 +28,8 @@ public class UIManager : MonoBehaviour
     private bool isMuted = false;
     private bool isDeafened = false;
 
-    private AudioUDPSender audioSender;
-    private AudioUDPReceiver audioReceiver;
+    public AudioSenderMobile audioSender;
+    public AudioReceiverMobile audioReceiver;
 
     private float lastAudioToggleTime = 0f;
     private const float audioToggleCooldown = 0.3f;
@@ -41,11 +39,10 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
-        audioSender = FindObjectOfType<AudioUDPSender>();
-        audioReceiver = FindObjectOfType<AudioUDPReceiver>();
-
         showingRGB = true;
-        SetScreenState(showingRGB);
+
+        if (imageReceiver != null)
+            imageReceiver.ShowRGB();
 
         SetActiveMap(2);
 
@@ -66,18 +63,16 @@ public class UIManager : MonoBehaviour
     public void ToggleScreen()
     {
         showingRGB = !showingRGB;
-        SetScreenState(showingRGB);
-    }
 
-    private void SetScreenState(bool rgb)
-    {
-        if (rgbScreen != null)
-            rgbScreen.SetActive(rgb);
+        if (imageReceiver != null)
+        {
+            if (showingRGB)
+                imageReceiver.ShowRGB();
+            else
+                imageReceiver.ShowDepth();
+        }
 
-        if (depthScreen != null)
-            depthScreen.SetActive(!rgb);
-
-        Debug.Log("UIManager: Pantalla activa -> " + (rgb ? "RGB" : "Depth"));
+        Debug.Log("UIManager: Modo -> " + (showingRGB ? "RGB" : "Depth"));
     }
 
 
