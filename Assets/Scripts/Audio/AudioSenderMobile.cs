@@ -24,6 +24,8 @@ public class AudioSenderMobile : MonoBehaviour
 
     private uLipSyncAudioSource lipSyncProxy;
 
+    public bool isMuted = false;
+
     void Start()
     {
         if (Microphone.devices.Length == 0)
@@ -82,7 +84,9 @@ public class AudioSenderMobile : MonoBehaviour
 
             for (int i = 0; i < chunkSize; i++)
             {
-                short sample = (short)(Mathf.Clamp(audioBuffer[i], -1f, 1f) * short.MaxValue);
+                //short sample = (short)(Mathf.Clamp(audioBuffer[i], -1f, 1f) * short.MaxValue);
+                float value = isMuted ? 0f : audioBuffer[i];
+                short sample = (short)(Mathf.Clamp(value, -1f, 1f) * short.MaxValue);
 
                 byteBuffer[i * 2] = (byte)(sample & 0xFF);
                 byteBuffer[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);

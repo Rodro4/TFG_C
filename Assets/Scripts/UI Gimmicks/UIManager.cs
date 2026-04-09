@@ -119,8 +119,10 @@ public class UIManager : MonoBehaviour
         lastAudioToggleTime = Time.time;
         isMuted = !isMuted;
 
+        //if (audioSender != null)
+            //audioSender.enabled = !isMuted;
         if (audioSender != null)
-            audioSender.enabled = !isMuted;
+            audioSender.isMuted = isMuted;
 
         UpdateMicIcon();
     }
@@ -133,8 +135,10 @@ public class UIManager : MonoBehaviour
         lastAudioToggleTime = Time.time;
         isDeafened = !isDeafened;
 
+        //if (audioReceiver != null)
+            //audioReceiver.enabled = !isDeafened;
         if (audioReceiver != null)
-            audioReceiver.enabled = !isDeafened;
+            audioReceiver.isDeafened = isDeafened;
 
         UpdateHeadphonesIcon();
     }

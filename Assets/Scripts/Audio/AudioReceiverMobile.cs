@@ -16,6 +16,8 @@ public class AudioReceiverMobile : MonoBehaviour
 
     string taag = "AudioReceiverMobile";
 
+    public bool isDeafened = false;
+
     void Awake()
     {
         var config = AudioSettings.GetConfiguration();
@@ -80,25 +82,51 @@ public class AudioReceiverMobile : MonoBehaviour
         }
     }
 
+    //void OnAudioFilterRead(float[] data, int channels)
+    //{
+    //    for (int i = 0; i < data.Length; i += channels)
+    //    {
+    //        float sample = 0f;
+
+    //        if (audioQueue.TryDequeue(out sample))
+    //        {
+    //            for (int c = 0; c < channels; c++)
+    //                data[i + c] = sample;
+    //        }
+    //        else
+    //        {
+    //            for (int c = 0; c < channels; c++)
+    //                data[i + c] = 0f;
+    //        }
+    //    }
+    //    //Debug.Log(taag + $" OnAudioFilterRead llamado, buffer length: {data.Length}, cola restante: {audioQueue.Count}");
+    //}
     void OnAudioFilterRead(float[] data, int channels)
     {
         for (int i = 0; i < data.Length; i += channels)
         {
             float sample = 0f;
 
-            if (audioQueue.TryDequeue(out sample))
+            if (isDeafened)
             {
-                for (int c = 0; c < channels; c++)
-                    data[i + c] = sample;
+                sample = 0f;
+            }
+            else if (audioQueue.TryDequeue(out sample))
+            {
+                // ok
             }
             else
             {
-                for (int c = 0; c < channels; c++)
-                    data[i + c] = 0f;
+                sample = 0f;
+            }
+
+            for (int c = 0; c < channels; c++)
+            {
+                data[i + c] = sample;
             }
         }
-        //Debug.Log(taag + $" OnAudioFilterRead llamado, buffer length: {data.Length}, cola restante: {audioQueue.Count}");
     }
+
 
     void OnApplicationQuit()
     {
