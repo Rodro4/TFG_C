@@ -6,12 +6,10 @@ public class UIManager : MonoBehaviour
 {
     [Header("Image Receiver")]
     public RGBDImageReceiverUDP imageReceiver;
-    private bool showingRGB = true; 
+    private bool showingRGB = true;
 
-    [Header("3D Maps")]
-    public GameObject[] pointCloudObjects;
-    public GameObject octoMap;
-    public GameObject occupancyMap;
+    [Header("Map Manager")]
+    public Map3DManager mapManager;
 
     [Header("UI Elements")]
     public TMP_Dropdown mapDropdown;
@@ -44,10 +42,11 @@ public class UIManager : MonoBehaviour
         if (imageReceiver != null)
             imageReceiver.ShowRGB();
 
-        SetActiveMap(2);
+        // MAP DEFAULT
+        if (mapManager != null)
+            mapManager.ShowWallMap();
 
-        if (mapDropdown != null)
-            mapDropdown.onValueChanged.AddListener(SetActiveMap);
+        SetupDropdown();
 
         if (muteButton != null)
             muteButton.onClick.AddListener(ToggleMute);
@@ -59,7 +58,28 @@ public class UIManager : MonoBehaviour
         UpdateHeadphonesIcon();
     }
 
+    // =========================
+    // DROPDOWN SETUP
+    // =========================
+    void SetupDropdown()
+    {
+        if (mapDropdown == null) return;
+
+        mapDropdown.ClearOptions();
+        mapDropdown.AddOptions(new System.Collections.Generic.List<string>
+        {
+            "Wall Map",
+            "Mesh Map",
+            "Octo Map",
+            "Particle Map"
+        });
+
+        mapDropdown.onValueChanged.AddListener(SetActiveMap);
+    }
+
+    // =========================
     // RGB / DEPTH
+    // =========================
     public void ToggleScreen()
     {
         showingRGB = !showingRGB;
@@ -75,42 +95,55 @@ public class UIManager : MonoBehaviour
         Debug.Log("UIManager: Modo -> " + (showingRGB ? "RGB" : "Depth"));
     }
 
-
-    // 3D MAP SELECTION
+    // =========================
+    // MAP SELECTION
+    // =========================
     public void SetActiveMap(int index)
     {
-        SetGroupActive(pointCloudObjects, index == 0);
+        if (mapManager == null)
+            return;
 
-        if (octoMap != null)
-            octoMap.SetActive(index == 1);
+        switch (index)
+        {
+            case 0:
+                mapManager.ShowWallMap();
+                break;
 
-        if (occupancyMap != null)
-            occupancyMap.SetActive(index == 2);
+            case 1:
+                mapManager.ShowMeshMap();
+                break;
 
-        Debug.Log($"UIManager: Mapa 3D activo -> {GetMapName(index)}");
-    }
+            case 2:
+                mapManager.ShowOctoMap();
+                break;
 
-    private void SetGroupActive(GameObject[] group, bool active)
-    {
-        if (group == null) return;
+            case 3:
+                mapManager.ShowParticleMap();
+                break;
 
-        foreach (var go in group)
-            if (go != null)
-                go.SetActive(active);
+            default:
+                mapManager.ShowWallMap();
+                break;
+        }
+
+        Debug.Log($"UIManager: Mapa activo -> {GetMapName(index)}");
     }
 
     private string GetMapName(int index)
     {
         return index switch
         {
-            0 => "PointCloud (+ PersistentVoxelMap)",
-            1 => "OctoMap",
-            2 => "OccupancyMap",
+            0 => "Wall Map",
+            1 => "Mesh Map",
+            2 => "Octo Map",
+            3 => "Particle Map",
             _ => "Unknown"
         };
     }
 
+    // =========================
     // AUDIO CONTROLS
+    // =========================
     public void ToggleMute()
     {
         if (Time.time - lastAudioToggleTime < audioToggleCooldown)
@@ -119,8 +152,6 @@ public class UIManager : MonoBehaviour
         lastAudioToggleTime = Time.time;
         isMuted = !isMuted;
 
-        //if (audioSender != null)
-            //audioSender.enabled = !isMuted;
         if (audioSender != null)
             audioSender.isMuted = isMuted;
 
@@ -135,8 +166,6 @@ public class UIManager : MonoBehaviour
         lastAudioToggleTime = Time.time;
         isDeafened = !isDeafened;
 
-        //if (audioReceiver != null)
-            //audioReceiver.enabled = !isDeafened;
         if (audioReceiver != null)
             audioReceiver.isDeafened = isDeafened;
 
@@ -163,10 +192,11 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // MINIGAME START
+    // =========================
+    // MINIGAME
+    // =========================
     public void OnGameModeButton()
     {
         gameManager.StartGameMode();
     }
-
 }

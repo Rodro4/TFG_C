@@ -9,11 +9,7 @@ import android.util.Log
 import android.util.Size
 import android.view.View
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -27,6 +23,20 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
+
+    // --- CONFIGURACIÓN CENTRALIZADA ---
+    private var IP_DESTINO = "192.168.1.144"
+    private var PUERTO_VIDEO_REC = 5000
+    private var PUERTO_AUDIO_REC = 5001
+    private var PUERTO_MIC_SEND = 5004
+    private var PUERTO_CAM_SEND = 5005
+
+    private var CALIDAD_JPG = 40
+    private var ANCHO_VIDEO = 1080
+    private var ALTO_VIDEO = 720
+    private var FRECUENCIA_AUDIO = 48000
+    // ----------------------------------
+
     private lateinit var imageView: ImageView
     private lateinit var viewFinder: PreviewView
     private lateinit var tvLocalIP: TextView
@@ -38,37 +48,27 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnConnect: Button
     private lateinit var configPanel: LinearLayout
 
-    private val tag = "Telepresence"
     private var videoSocket: DatagramSocket? = null
     private var audioSocket: DatagramSocket? = null
     private var cameraSocket: DatagramSocket? = null
     private var micSocket: DatagramSocket? = null
     
     private lateinit var cameraExecutor: ExecutorService
-    
-    @Volatile
     private var isRunning = false
-    private var frameCount = 0
-    private var lastLogTime = 0L
 
-    private val requestPermissionsLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val audioGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
-        val cameraGranted = permissions[Manifest.permission.CAMERA] ?: false
-        
-        if (audioGranted && cameraGranted) {
-            // Permisos concedidos
-        }
-    }
+    private val requestPermissionsLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        
-        // Mantener la pantalla encendida evita que el sistema pause la cámara por inactividad
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         
+        initUI()
+        cameraExecutor = Executors.newSingleThreadExecutor()
+        checkPermissions()
+    }
+
+    private fun initUI() {
         imageView = findViewById(R.id.videoView)
         viewFinder = findViewById(R.id.viewFinder)
         tvLocalIP = findViewById(R.id.tvLocalIP)
@@ -80,10 +80,14 @@ class MainActivity : AppCompatActivity() {
         btnConnect = findViewById(R.id.btnConnect)
         configPanel = findViewById(R.id.configPanel)
 
-        cameraExecutor = Executors.newSingleThreadExecutor()
+        // Cargar valores por defecto en la interfaz
+        etIP.setText(IP_DESTINO)
+        etVideoPort.setText(PUERTO_VIDEO_REC.toString())
+        etAudioPort.setText(PUERTO_AUDIO_REC.toString())
+        etMicPort.setText(PUERTO_MIC_SEND.toString())
+        etCamPort.setText(PUERTO_CAM_SEND.toString())
 
-        val myIP = getLocalIpAddress() ?: "No detectada"
-        tvLocalIP.text = "Mi IP: $myIP"
+        tvLocalIP.text = "Mi IP: ${getLocalIpAddress() ?: "Desconocida"}"
 
         btnConnect.setOnClickListener {
             if (!isRunning) {
@@ -102,8 +106,6 @@ class MainActivity : AppCompatActivity() {
                 configPanel.visibility = if (configPanel.visibility == View.VISIBLE) View.GONE else View.VISIBLE
             }
         }
-
-        checkPermissions()
     }
 
     private fun getLocalIpAddress(): String? {
@@ -112,27 +114,22 @@ class MainActivity : AppCompatActivity() {
             for (intf in interfaces) {
                 val addrs = Collections.list(intf.inetAddresses)
                 for (addr in addrs) {
-                    if (!addr.isLoopbackAddress) {
-                        val sAddr = addr.hostAddress
-                        val isIPv4 = sAddr?.indexOf(':') ?: -1 < 0
-                        if (isIPv4) return sAddr
+                    if (!addr.isLoopbackAddress && addr is Inet4Address) {
+                        return addr.hostAddress
                     }
                 }
             }
-        } catch (ex: Exception) {
-            Log.e(tag, "Error obteniendo IP local: ${ex.message}")
-        }
+        } catch (e: Exception) {}
         return null
     }
 
     private fun startStreaming() {
         isRunning = true
-        frameCount = 0
         val ip = etIP.text.toString()
-        val vPort = etVideoPort.text.toString().toIntOrNull() ?: 5000
-        val aPort = etAudioPort.text.toString().toIntOrNull() ?: 5001
-        val mPort = etMicPort.text.toString().toIntOrNull() ?: 5004
-        val cPort = etCamPort.text.toString().toIntOrNull() ?: 5005
+        val vPort = etVideoPort.text.toString().toInt()
+        val aPort = etAudioPort.text.toString().toInt()
+        val mPort = etMicPort.text.toString().toInt()
+        val cPort = etCamPort.text.toString().toInt()
 
         startVideoReceiver(vPort)
         startAudioReceiver(aPort)
@@ -148,146 +145,72 @@ class MainActivity : AppCompatActivity() {
         micSocket?.close()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        stopStreaming()
-        cameraExecutor.shutdown()
-    }
-
-    private fun checkPermissions() {
-        val permissionsToRequest = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            permissionsToRequest.add(Manifest.permission.CAMERA)
-        }
-
-        if (permissionsToRequest.isNotEmpty()) {
-            requestPermissionsLauncher.launch(permissionsToRequest.toTypedArray())
-        }
-    }
-
     private fun startVideoReceiver(port: Int) {
         Thread {
             try {
                 videoSocket = DatagramSocket(null).apply {
                     reuseAddress = true
-                    receiveBufferSize = 1024 * 1024
                     bind(InetSocketAddress(port))
                 }
                 val buffer = ByteArray(65535)
                 val packet = DatagramPacket(buffer, buffer.size)
 
-                val options = BitmapFactory.Options().apply {
-                    inMutable = true
-                    inPreferredConfig = Bitmap.Config.RGB_565
-                }
-
-                while(isRunning && videoSocket?.isClosed == false) {
-                    packet.length = buffer.size
+                while(isRunning) {
                     videoSocket?.receive(packet)
-
-                    val bitmap = BitmapFactory.decodeByteArray(packet.data, 0, packet.length, options)
+                    val bitmap = BitmapFactory.decodeByteArray(packet.data, 0, packet.length)
                     if (bitmap != null) {
                         runOnUiThread { imageView.setImageBitmap(bitmap) }
                     }
                 }
-            } catch (e: Exception) { Log.e(tag, "Video error: ${e.message}") }
+            } catch (e: Exception) {}
         }.start()
     }
 
     private fun startAudioReceiver(port: Int) {
         Thread {
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO)
-
-            val sampleRate = 48000
-            val channelConfig = AudioFormat.CHANNEL_OUT_MONO
-            val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-            val minBufSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-
+            val minBufSize = AudioTrack.getMinBufferSize(FRECUENCIA_AUDIO, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
             val audioTrack = AudioTrack(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build(),
-                AudioFormat.Builder()
-                    .setEncoding(audioFormat)
-                    .setSampleRate(sampleRate)
-                    .setChannelMask(channelConfig)
-                    .build(),
-                minBufSize / 4,
-                AudioTrack.MODE_STREAM,
-                AudioManager.AUDIO_SESSION_ID_GENERATE
+                AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build(),
+                AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(FRECUENCIA_AUDIO).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),
+                minBufSize, AudioTrack.MODE_STREAM, AudioManager.AUDIO_SESSION_ID_GENERATE
             )
-
             audioTrack.play()
 
             try {
                 audioSocket = DatagramSocket(null).apply {
                     reuseAddress = true
-                    soTimeout = 0
-                    receiveBufferSize = 65535
                     bind(InetSocketAddress(port))
                 }
-
                 val buffer = ByteArray(4096)
                 val packet = DatagramPacket(buffer, buffer.size)
 
-                while (isRunning && audioSocket?.isClosed == false) {
-                    packet.length = buffer.size
+                while (isRunning) {
                     audioSocket?.receive(packet)
-                    val length = if (packet.length % 2 == 0) packet.length else packet.length - 1
-                    if (length > 0) {
-                        audioTrack.write(packet.data, 0, length, AudioTrack.WRITE_NON_BLOCKING)
-                    }
+                    audioTrack.write(packet.data, 0, packet.length)
                 }
-            } catch (e: Exception) {
-                Log.e(tag, "AudioReceiver error: ${e.message}")
-            } finally {
+            } catch (e: Exception) {} finally {
                 audioTrack.stop()
                 audioTrack.release()
-                audioSocket?.close()
             }
         }.start()
     }
 
     private fun startMicSender(ip: String, port: Int) {
         Thread {
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO)
-
-            val sampleRate = 48000
-            val chunkSamples = 480
-            val chunkBytes = chunkSamples * 2
-
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return@Thread
-
-            val recorder = AudioRecord(
-                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                chunkBytes * 4
-            )
-
+            val recorder = AudioRecord(MediaRecorder.AudioSource.MIC, FRECUENCIA_AUDIO, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, 8192)
             try {
                 micSocket = DatagramSocket()
                 val serverIP = InetAddress.getByName(ip)
-                val buffer = ByteArray(chunkBytes)
+                val buffer = ByteArray(960)
                 recorder.startRecording()
-
-                while (isRunning && micSocket?.isClosed == false) {
+                while (isRunning) {
                     val read = recorder.read(buffer, 0, buffer.size)
-                    if (read > 0) {
-                        micSocket?.send(DatagramPacket(buffer, read, serverIP, port))
-                    }
+                    if (read > 0) micSocket?.send(DatagramPacket(buffer, read, serverIP, port))
                 }
-            } catch (e: Exception) { 
-                Log.e(tag, "Error enviando UDP audio: ${e.message}") 
-            } finally {
+            } catch (e: Exception) {} finally {
                 recorder.stop()
                 recorder.release()
-                micSocket?.close()
             }
         }.start()
     }
@@ -296,54 +219,33 @@ class MainActivity : AppCompatActivity() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
-
-            val targetSize = Size(320, 240)
+            val targetSize = Size(ANCHO_VIDEO, ALTO_VIDEO)
 
             val imageAnalysis = ImageAnalysis.Builder()
                 .setTargetResolution(targetSize)
-                // STRATEGY_BLOCK_PRODUCER obliga a CameraX a esperar al procesamiento, evitando que se "salte" frames quieto
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_BLOCK_PRODUCER)
                 .build()
 
-            val preview = Preview.Builder()
-                .setTargetResolution(targetSize)
-                .build().also {
-                    it.setSurfaceProvider(viewFinder.surfaceProvider)
-                }
+            val preview = Preview.Builder().setTargetResolution(targetSize).build().also {
+                it.setSurfaceProvider(viewFinder.surfaceProvider)
+            }
 
             try {
                 cameraSocket = DatagramSocket()
                 val serverIP = InetAddress.getByName(ip)
-
                 imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                     try {
-                        if (!isRunning) return@setAnalyzer
-                        
-                        val jpegBytes = imageProxyToJpeg(imageProxy)
-                        if (jpegBytes != null && jpegBytes.size < 65000) {
-                            val packet = DatagramPacket(jpegBytes, jpegBytes.size, serverIP, port)
-                            cameraSocket?.send(packet)
-
-                            frameCount++
-                            val now = System.currentTimeMillis()
-                            if (now - lastLogTime > 2000) {
-                                Log.d(tag, "Streaming: frame $frameCount, size: ${jpegBytes.size} bytes")
-                                lastLogTime = now
+                        if (isRunning) {
+                            val jpegBytes = imageProxyToJpeg(imageProxy)
+                            if (jpegBytes != null) {
+                                cameraSocket?.send(DatagramPacket(jpegBytes, jpegBytes.size, serverIP, port))
                             }
                         }
-                    } catch (e: Exception) {
-                        Log.e(tag, "Error en analyzer: ${e.message}")
-                    } finally {
-                        imageProxy.close()
-                    }
+                    } catch (e: Exception) {} finally { imageProxy.close() }
                 }
-
-                val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis)
-            } catch (e: Exception) {
-                Log.e(tag, "Error cámara: ${e.message}")
-            }
+                cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, imageAnalysis)
+            } catch (e: Exception) {}
         }, ContextCompat.getMainExecutor(this))
     }
 
@@ -351,7 +253,6 @@ class MainActivity : AppCompatActivity() {
         val width = image.width
         val height = image.height
         val planes = image.planes
-        
         val yBuffer = planes[0].buffer
         val uBuffer = planes[1].buffer
         val vBuffer = planes[2].buffer
@@ -366,21 +267,29 @@ class MainActivity : AppCompatActivity() {
             idY += width
         }
         
-        val uvRowStride = planes[1].rowStride
-        val uvPixelStride = planes[1].pixelStride
         for (y in 0 until height / 2) {
             for (x in 0 until width / 2) {
-                val uPos = y * uvRowStride + x * uvPixelStride
+                val uPos = y * planes[1].rowStride + x * planes[1].pixelStride
                 val vPos = y * planes[2].rowStride + x * planes[2].pixelStride
                 nv21[idUV++] = vBuffer.get(vPos)
                 nv21[idUV++] = uBuffer.get(uPos)
             }
         }
 
-        val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
         val out = ByteArrayOutputStream()
-        // Comprimir el Rect completo del sensor
-        val success = yuvImage.compressToJpeg(Rect(0, 0, width, height), 70, out)
-        return if (success) out.toByteArray() else null
+        val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
+        return if (yuvImage.compressToJpeg(Rect(0, 0, width, height), CALIDAD_JPG, out)) out.toByteArray() else null
+    }
+
+    private fun checkPermissions() {
+        val permissions = arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA)
+        val missing = permissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) requestPermissionsLauncher.launch(missing.toTypedArray())
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopStreaming()
+        cameraExecutor.shutdown()
     }
 }

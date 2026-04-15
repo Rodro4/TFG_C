@@ -3,20 +3,27 @@ using UnityEngine;
 public class Map3DManager : MonoBehaviour
 {
     [Header("3D Map Objects")]
-    public GameObject pointCloudMap;
+    public GameObject wallMap;
+    public GameObject meshMap;
     public GameObject octoMap;
-    public GameObject occupancyMap;
+    public GameObject particleMap;
 
     void Start()
     {
         // Estado inicial
-        ShowOccupancyMap();
+        ShowWallMap();
     }
 
-    public void ShowPointCloud()
+    public void ShowWallMap()
     {
-        SetActiveMap(pointCloudMap);
-        Debug.Log("Map3DManager: PointCloud activado");
+        SetActiveMap(wallMap);
+        Debug.Log("Map3DManager: WallMap activado");
+    }
+
+    public void ShowMeshMap()
+    {
+        SetActiveMap(meshMap);
+        Debug.Log("Map3DManager: MeshMap activado");
     }
 
     public void ShowOctoMap()
@@ -25,16 +32,24 @@ public class Map3DManager : MonoBehaviour
         Debug.Log("Map3DManager: OctoMap activado");
     }
 
-    public void ShowOccupancyMap()
+    public void ShowParticleMap()
     {
-        SetActiveMap(occupancyMap);
-        Debug.Log("Map3DManager: OccupancyMap activado");
+        SetActiveMap(particleMap);
+        Debug.Log("Map3DManager: ParticleMap activado");
     }
 
     private void SetActiveMap(GameObject active)
     {
-        if (pointCloudMap != null) pointCloudMap.SetActive(active == pointCloudMap);
-        if (octoMap != null) octoMap.SetActive(active == octoMap);
-        if (occupancyMap != null) occupancyMap.SetActive(active == occupancyMap);
+        if (wallMap != null)
+            wallMap.SetActive(active == wallMap);
+
+        if (meshMap != null)
+            meshMap.SetActive(active == meshMap);
+
+        if (octoMap != null)
+            octoMap.SetActive(active == octoMap);
+
+        if (particleMap != null)
+            particleMap.SetActive(active == particleMap);
     }
 }

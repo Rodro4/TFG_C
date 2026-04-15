@@ -3,98 +3,46 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-[RequireComponent(typeof(Renderer))]
 public class RGBDImageReceiverUDP : MonoBehaviour
 {
+    [Header("Configuración")]
     public int rgbPort = 5006;
     public int depthPort = 5007;
+    public bool mostrarRGB = true;
 
-    private UdpClient rgbClient;
-    private UdpClient depthClient;
-
-    private Thread rgbThread;
-    private Thread depthThread;
-
-    private Texture2D rgbTexture;
-    private Texture2D depthTexture;
-
+    private UdpClient rgbClient, depthClient;
+    private Thread rgbThread, depthThread;
+    private Texture2D rgbTex, depthTex;
     private Renderer rend;
-
-    private byte[] latestRGB;
-    private byte[] latestDepth;
-
-    private readonly object lockRGB = new object();
-    private readonly object lockDepth = new object();
-
-    private bool newRGB = false;
-    private bool newDepth = false;
-
-    public bool showRGB = true;
+    private byte[] dataRGB, dataDepth;
+    private bool nuevoRGB, nuevoDepth;
+    private readonly object lockObj = new object();
 
     void Start()
     {
         rend = GetComponent<Renderer>();
+        rgbTex = new Texture2D(2, 2);
+        depthTex = new Texture2D(2, 2);
 
-        rgbTexture = new Texture2D(2, 2, TextureFormat.RGB24, false);
-        depthTexture = new Texture2D(2, 2, TextureFormat.RGB24, false);
-
-        rend.material.mainTexture = rgbTexture;
-
-        // UDP RGB
         rgbClient = new UdpClient(rgbPort);
-        rgbClient.Client.ReceiveBufferSize = 1024 * 1024;
-
-        // UDP DEPTH
         depthClient = new UdpClient(depthPort);
-        depthClient.Client.ReceiveBufferSize = 1024 * 1024;
 
-        // Threads
-        rgbThread = new Thread(ReceiveRGB);
-        rgbThread.IsBackground = true;
-        rgbThread.Start();
-
-        depthThread = new Thread(ReceiveDepth);
-        depthThread.IsBackground = true;
-        depthThread.Start();
-
-        Debug.Log("RGB en puerto " + rgbPort);
-        Debug.Log("DEPTH en puerto " + depthPort);
+        (rgbThread = new Thread(() => Escuchar(rgbClient, true))).Start();
+        (depthThread = new Thread(() => Escuchar(depthClient, false))).Start();
     }
 
-    void ReceiveRGB()
+    void Escuchar(UdpClient client, bool esRGB)
     {
-        IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, rgbPort);
-
+        IPEndPoint ep = new IPEndPoint(IPAddress.Any, 0);
         while (true)
         {
             try
             {
-                byte[] data = rgbClient.Receive(ref anyIP);
-
-                lock (lockRGB)
+                byte[] data = client.Receive(ref ep);
+                lock (lockObj)
                 {
-                    latestRGB = data;
-                    newRGB = true;
-                }
-            }
-            catch { }
-        }
-    }
-
-    void ReceiveDepth()
-    {
-        IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, depthPort);
-
-        while (true)
-        {
-            try
-            {
-                byte[] data = depthClient.Receive(ref anyIP);
-
-                lock (lockDepth)
-                {
-                    latestDepth = data;
-                    newDepth = true;
+                    if (esRGB) { dataRGB = data; nuevoRGB = true; }
+                    else { dataDepth = data; nuevoDepth = true; }
                 }
             }
             catch { }
@@ -103,90 +51,35 @@ public class RGBDImageReceiverUDP : MonoBehaviour
 
     void Update()
     {
-        if (showRGB)
+        byte[] frame = null;
+        bool hayActualizacion = false;
+
+        lock (lockObj)
         {
-            if (newRGB)
-            {
-                byte[] frameCopy;
-
-                lock (lockRGB)
-                {
-                    frameCopy = latestRGB;
-                    newRGB = false;
-                }
-
-                if (frameCopy != null && frameCopy.Length > 100)
-                {
-                    bool loaded = rgbTexture.LoadImage(frameCopy);
-
-                    if (loaded)
-                    {
-                        rgbTexture.Apply();
-                        rend.material.mainTexture = rgbTexture;
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Frame RGB corrupto");
-                    }
-                }
-            }
+            if (mostrarRGB && nuevoRGB) { frame = dataRGB; nuevoRGB = false; hayActualizacion = true; }
+            else if (!mostrarRGB && nuevoDepth) { frame = dataDepth; nuevoDepth = false; hayActualizacion = true; }
         }
-        else
+
+        if (hayActualizacion && frame != null)
         {
-            if (newDepth)
-            {
-                byte[] frameCopy;
-
-                lock (lockDepth)
-                {
-                    frameCopy = latestDepth;
-                    newDepth = false;
-                }
-
-                if (frameCopy != null && frameCopy.Length > 100)
-                {
-                    bool loaded = depthTexture.LoadImage(frameCopy);
-
-                    if (loaded)
-                    {
-                        depthTexture.Apply();
-                        rend.material.mainTexture = depthTexture;
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Frame DEPTH corrupto");
-                    }
-                }
-            }
+            Texture2D tex = mostrarRGB ? rgbTex : depthTex;
+            if (tex.LoadImage(frame)) rend.material.mainTexture = tex;
         }
     }
 
     void OnApplicationQuit()
     {
-        if (rgbThread != null) rgbThread.Abort();
-        if (depthThread != null) depthThread.Abort();
-
-        if (rgbClient != null) rgbClient.Close();
-        if (depthClient != null) depthClient.Close();
+        rgbThread?.Abort(); depthThread?.Abort();
+        rgbClient?.Close(); depthClient?.Close();
     }
 
     public void ShowRGB()
     {
-        showRGB = true;
+        mostrarRGB = true;
     }
 
     public void ShowDepth()
     {
-        showRGB = false;
-    }
-
-    public Texture2D GetRGBTexture()
-    {
-        return rgbTexture;
-    }
-
-    public Texture2D GetDepthTexture()
-    {
-        return depthTexture;
+        mostrarRGB = false;
     }
 }

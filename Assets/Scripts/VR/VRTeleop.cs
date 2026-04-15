@@ -99,7 +99,7 @@ public class VRTeleop : UnityPublisher<Twist>
         };
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
         if (!isRobotMode || currentMoveAction == null)
             return;
