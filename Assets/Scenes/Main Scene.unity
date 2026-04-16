@@ -217,6 +217,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9659752}
   - component: {fileID: 9659751}
+  - component: {fileID: 9659753}
   m_Layer: 0
   m_Name: Map3DManager
   m_TagString: Untagged
@@ -255,6 +256,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &9659753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9659750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62d37746d6bbed142a592015263054d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  odomTopic: /odom
+  isStationary: 0
+  linearThreshold: 0.02
+  angularThreshold: 0.05
 --- !u!1001 &11573441
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2905,6 +2922,7 @@ MonoBehaviour:
   topic: /camera/depth/points
   useROS: 1
   skip: 10
+  motionDetector: {fileID: 9659753}
 --- !u!64 &271697781
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -3911,10 +3929,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 162fd764d6789804d8211d099c473d87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  voxelSize: 0.05
-  generateColliders: 1
-  collidersPerFrame: 50
-  cacheDirty: 1
 --- !u!4 &348027107
 Transform:
   m_ObjectHideFlags: 0
@@ -12641,6 +12655,7 @@ MonoBehaviour:
   voxelSize: 0.05
   generateColliders: 1
   collidersPerFrame: 50
+  motionDetector: {fileID: 9659753}
 --- !u!4 &1036854961
 Transform:
   m_ObjectHideFlags: 0
@@ -15691,13 +15706,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df2f407035e16d3489ab9b483e3e8e74, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  topic: /camera/depth/points
-  useROS: 1
-  skip: 10
-  tf: {fileID: 0}
-  map: {fileID: 0}
-  colorsCache: []
-  posCache: []
 --- !u!4 &1240594413
 Transform:
   m_ObjectHideFlags: 0
