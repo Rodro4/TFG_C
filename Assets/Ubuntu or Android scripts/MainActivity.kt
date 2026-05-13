@@ -35,6 +35,9 @@ class MainActivity : AppCompatActivity() {
     private var ANCHO_VIDEO = 1080
     private var ALTO_VIDEO = 720
     private var FRECUENCIA_AUDIO = 48000
+
+    private var BUFFER_VIDEO_UDP = 65535
+    private var BUFFER_AUDIO_BYTES = 960
     // ----------------------------------
 
     private lateinit var imageView: ImageView
@@ -80,7 +83,6 @@ class MainActivity : AppCompatActivity() {
         btnConnect = findViewById(R.id.btnConnect)
         configPanel = findViewById(R.id.configPanel)
 
-        // Cargar valores por defecto en la interfaz
         etIP.setText(IP_DESTINO)
         etVideoPort.setText(PUERTO_VIDEO_REC.toString())
         etAudioPort.setText(PUERTO_AUDIO_REC.toString())
@@ -152,7 +154,7 @@ class MainActivity : AppCompatActivity() {
                     reuseAddress = true
                     bind(InetSocketAddress(port))
                 }
-                val buffer = ByteArray(65535)
+                val buffer = ByteArray(BUFFER_VIDEO_UDP)
                 val packet = DatagramPacket(buffer, buffer.size)
 
                 while(isRunning) {
@@ -181,7 +183,7 @@ class MainActivity : AppCompatActivity() {
                     reuseAddress = true
                     bind(InetSocketAddress(port))
                 }
-                val buffer = ByteArray(4096)
+                val buffer = ByteArray(BUFFER_AUDIO_BYTES)
                 val packet = DatagramPacket(buffer, buffer.size)
 
                 while (isRunning) {
@@ -202,7 +204,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 micSocket = DatagramSocket()
                 val serverIP = InetAddress.getByName(ip)
-                val buffer = ByteArray(960)
+                val buffer = ByteArray(BUFFER_AUDIO_BYTES)
                 recorder.startRecording()
                 while (isRunning) {
                     val read = recorder.read(buffer, 0, buffer.size)

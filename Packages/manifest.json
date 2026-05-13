@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "com.atteneder.gltfast": "6.16.1",
-    "com.hecomi.ulipsync": "file:C:/Users/hllro/Desktop/Rodro/Estudios/Universidad/Quinto/TFGs/uLipSync-main/uLipSync-main/Assets/uLipSync",
-    "com.siemens.ros-sharp": "file:C:/Users/hllro/Desktop/Rodro/Estudios/Universidad/Quinto/TFGs/ros-sharp-2.1.0/ros-sharp-2.1.0/com.siemens.ros-sharp",
+    "com.hecomi.ulipsync": "file:uLipSync",
+    "com.siemens.ros-sharp": "file:com.siemens.ros-sharp",
     "com.unity.collab-proxy": "2.8.2",
     "com.unity.feature.development": "1.0.1",
     "com.unity.memoryprofiler": "1.1.12",
