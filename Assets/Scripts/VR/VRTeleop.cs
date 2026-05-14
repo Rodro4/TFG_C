@@ -38,8 +38,11 @@ public class VRTeleop : UnityPublisher<Twist>
     private InputAction switchPovAction;
 
     [Header("Speed Settings")]
-    public float linearSpeed = 0.8f;
+    public float linearSpeed = 0.5f;
     public float angularSpeed = 1.0f;
+
+    private float publishRate = 20f; // Hz
+    private float timeSinceLastPublish = 0f;
 
     [Header("UI")]
     public Slider linearSlider;
@@ -104,10 +107,14 @@ public class VRTeleop : UnityPublisher<Twist>
         if (!isRobotMode || currentMoveAction == null)
             return;
 
-        // Bloqueo por energía
+        timeSinceLastPublish += Time.deltaTime;
+        if (timeSinceLastPublish < 1f / publishRate)
+            return; // No publicar aÃºn
+        timeSinceLastPublish = 0f;
+
+        // Bloqueo por energï¿½a
         if (gameModeManager != null && !gameModeManager.RobotCanMove())
         {
-            // Enviar velocidad 0 para asegurarnos que se detiene
             message.linear.x = 0;
             message.angular.z = 0;
             Publish(message);
@@ -116,10 +123,23 @@ public class VRTeleop : UnityPublisher<Twist>
 
         Vector2 input = currentMoveAction.ReadValue<Vector2>();
 
-        message.linear.x = input.y * linearSpeed;
-        message.angular.z = -input.x * angularSpeed;
+        // usar topics /cmd_vel_mux/input/teleop o /mobile_base/commands/velocity
+        // Calcular velocidades
+        float linear = input.y * linearSpeed;
+        float angular = -input.x * angularSpeed;
 
-        Publish(message);
+        // Enviar cualquier valor que no sea prÃ¡cticamente cero
+        bool sendLinear = !Mathf.Approximately(linear, 0f);
+        bool sendAngular = !Mathf.Approximately(angular, 0f);
+
+        message.linear.x = sendLinear ? linear : 0f;
+        message.angular.z = sendAngular ? angular : 0f;
+
+        // Publicar si hay movimiento
+        if (sendLinear || sendAngular)
+        {
+            Publish(message);
+        }
     }
 
 
@@ -179,7 +199,7 @@ public class VRTeleop : UnityPublisher<Twist>
 
     private void UpdatePOV()
     {
-        // Desactivar todas las cámaras
+        // Desactivar todas las cï¿½maras
         xrMainCamera.enabled = false;
         robotFirstPersonCamera.enabled = false;
         robotFirstPersonCamera.gameObject.SetActive(false);

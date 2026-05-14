@@ -36,7 +36,7 @@
 //        }
 //    }
 
-//    // TRANSFORMACIÓN DE PUNTOS
+//    // TRANSFORMACIï¿½N DE PUNTOS
 //    public bool TryTransformPoint(
 //        UnityVector3 pointRos,
 //        string fromFrame,
@@ -64,7 +64,7 @@
 //        return true;
 //    }
 
-//    // CONSTRUCCIÓN DE CADENA TF
+//    // CONSTRUCCIï¿½N DE CADENA TF
 //    private bool BuildChain(
 //        string from,
 //        string to,
@@ -86,7 +86,7 @@
 //        return true;
 //    }
 
-//    // CONVERSIÓN ROS -> UNITY
+//    // CONVERSIï¿½N ROS -> UNITY
 //    private UnityVector3 RosToUnity(RosVector3 v)
 //    {
 //        return new UnityVector3(

@@ -428,6 +428,10 @@ public class ParticleMap : MonoBehaviour
     // =========================
     void ReceivePointCloud(PointCloud2 msg)
     {
+        var mapManager = FindObjectOfType<Map3DManager>();
+        if (mapManager.activeMap != gameObject)
+            return;  // Ignora si este mapa no está activo
+
         if (!useROS)
             return;
 

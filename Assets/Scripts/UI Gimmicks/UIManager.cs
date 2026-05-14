@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using RosSharp.RosBridgeClient;
 
 public class UIManager : MonoBehaviour
 {
@@ -35,6 +36,8 @@ public class UIManager : MonoBehaviour
     [Header("Minigame manager")]
     public GameModeManager gameManager;
 
+    private RosSocket rosSocket;
+
     void Start()
     {
         showingRGB = true;
@@ -56,6 +59,11 @@ public class UIManager : MonoBehaviour
 
         UpdateMicIcon();
         UpdateHeadphonesIcon();
+
+        // Obtén el RosSocket
+        var connector = FindObjectOfType<RosConnector>();
+        if (connector != null)
+            rosSocket = connector.RosSocket;
     }
 
     // =========================
@@ -90,6 +98,13 @@ public class UIManager : MonoBehaviour
                 imageReceiver.ShowRGB();
             else
                 imageReceiver.ShowDepth();
+        }
+
+        // PUBLICA A ROS
+        if (rosSocket != null)
+        {
+            var msg = new RosSharp.RosBridgeClient.MessageTypes.Std.String { data = showingRGB ? "rgb" : "depth" };
+            rosSocket.Publish("/camera_stream_mode", msg);
         }
 
         Debug.Log("UIManager: Modo -> " + (showingRGB ? "RGB" : "Depth"));

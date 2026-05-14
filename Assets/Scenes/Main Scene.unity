@@ -1539,7 +1539,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &104108304
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2919,9 +2919,9 @@ MonoBehaviour:
   generateMesh: 1
   meshUpdateInterval: 1
   voxelMaterial: {fileID: 2100000, guid: 3a48fd8e465742841b3660e0ce4d2c68, type: 2}
-  topic: /camera/depth/points
+  topic: /camera/depth_registered/points
   useROS: 1
-  skip: 10
+  skip: 5
   motionDetector: {fileID: 9659753}
 --- !u!64 &271697781
 MeshCollider:
@@ -9708,7 +9708,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53f4917265306e642a9a731e8de11f61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  androidIP: 192.168.1.140
+  androidIP: 10.169.26.227
   port: 5000
   width: 1080
   height: 720
@@ -11371,6 +11371,8 @@ GameObject:
   - component: {fileID: 978715113}
   - component: {fileID: 978715120}
   - component: {fileID: 978715116}
+  - component: {fileID: 978715125}
+  - component: {fileID: 978715132}
   - component: {fileID: 978715122}
   - component: {fileID: 978715123}
   - component: {fileID: 978715119}
@@ -11378,8 +11380,6 @@ GameObject:
   - component: {fileID: 978715130}
   - component: {fileID: 978715129}
   - component: {fileID: 978715131}
-  - component: {fileID: 978715125}
-  - component: {fileID: 978715132}
   m_Layer: 0
   m_Name: RosConnector
   m_TagString: Untagged
@@ -11403,7 +11403,7 @@ MonoBehaviour:
   SecondsTimeout: 10
   Serializer: 0
   protocol: 0
-  RosBridgeServerUrl: ws://192.168.1.156:9090
+  RosBridgeServerUrl: ws://10.169.26.172:9090
 --- !u!4 &978715114
 Transform:
   m_ObjectHideFlags: 0
@@ -11489,7 +11489,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 978715112}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 23dd964f098b8434fbe70f31274677fb, type: 3}
   m_Name: 
@@ -11502,7 +11502,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 978715112}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45b4b18d25699a74081446b36582eb0d, type: 3}
   m_Name: 
@@ -12647,9 +12647,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e872b62d4d462404e90b23d1f74b38bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PointCloudTopic: /camera/depth/points
+  PointCloudTopic: /camera/depth_registered/points
   useROS: 1
-  PointSkip: 10
+  PointSkip: 1
   MaxPoints: 400000
   particleSize: 0.05
   voxelSize: 0.05
@@ -24687,7 +24687,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7868500d2ab2bd34fa30e7f70ec14eef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetIP: 192.168.1.140
+  targetIP: 10.169.26.227
   targetPort: 5001
   isMuted: 0
 --- !u!114 &1941846171

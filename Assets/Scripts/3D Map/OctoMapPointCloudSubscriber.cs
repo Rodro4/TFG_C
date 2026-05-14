@@ -7,7 +7,7 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
 {
     public string PointCloudTopic = "/octomap_point_cloud_centers";
 
-    [Tooltip("Máximo número absoluto de puntos a mostrar")]
+    [Tooltip("Mï¿½ximo nï¿½mero absoluto de puntos a mostrar")]
     public int MaxPoints = 400000;
 
     [Tooltip("Salto para muestrear puntos. 1 = usar todos, 2 = 1 de cada 2, etc")]
@@ -67,6 +67,10 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
 
     private void ReceivePointCloud(PointCloud2 msg)
     {
+        var mapManager = FindObjectOfType<Map3DManager>();
+        if (mapManager.activeMap != gameObject)
+            return;  // Ignora si este mapa no estÃ¡ activo
+
         int pointStep = (int)msg.point_step;
         int width = (int)msg.width;
         int height = (int)msg.height;

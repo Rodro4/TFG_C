@@ -8,6 +8,8 @@ public class Map3DManager : MonoBehaviour
     public GameObject octoMap;
     public GameObject particleMap;
 
+    public GameObject activeMap { get; private set; }
+
     void Start()
     {
         // Estado inicial
@@ -16,24 +18,28 @@ public class Map3DManager : MonoBehaviour
 
     public void ShowWallMap()
     {
+        activeMap = wallMap;
         SetActiveMap(wallMap);
         Debug.Log("Map3DManager: WallMap activado");
     }
 
     public void ShowMeshMap()
     {
+        activeMap = meshMap;
         SetActiveMap(meshMap);
         Debug.Log("Map3DManager: MeshMap activado");
     }
 
     public void ShowOctoMap()
     {
+        activeMap = octoMap;
         SetActiveMap(octoMap);
         Debug.Log("Map3DManager: OctoMap activado");
     }
 
     public void ShowParticleMap()
     {
+        activeMap = particleMap;
         SetActiveMap(particleMap);
         Debug.Log("Map3DManager: ParticleMap activado");
     }

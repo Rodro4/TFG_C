@@ -408,6 +408,13 @@ public class MeshMap : MonoBehaviour
     // =========================
     void Receive(PointCloud2 msg)
     {
+        var mapManager = FindObjectOfType<Map3DManager>();
+        if (mapManager.activeMap != gameObject)
+            return;  // Ignorar si este mapa no está activo
+
+        if (!useROS)
+            return;
+
         //robotmotiondetector
         if (motionDetector != null && !motionDetector.isStationary)
         {
