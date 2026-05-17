@@ -9846,12 +9846,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53f4917265306e642a9a731e8de11f61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  androidIP: 10.169.26.227
+  androidIP: 192.168.1.144
   port: 5000
   width: 1080
   height: 720
   quality: 30
-  frameRate: 0.04
+  frameInterval: 0.033
   cam: {fileID: 1762222793}
 --- !u!4 &851959982
 Transform:
@@ -24826,7 +24826,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7868500d2ab2bd34fa30e7f70ec14eef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetIP: 10.169.26.227
+  targetIP: 192.168.1.144
   targetPort: 5001
   isMuted: 0
 --- !u!114 &1941846171
