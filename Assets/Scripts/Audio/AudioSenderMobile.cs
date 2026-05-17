@@ -5,10 +5,10 @@ using uLipSync;
 
 public class AudioSenderMobile : MonoBehaviour
 {
-    [Header("Configuración")]
+    [Header("Configuraciï¿½n")]
     public string targetIP = "192.168.1.140";
     public int targetPort = 5001;
-    private int sampleRate = 48000;
+    private int sampleRate = 16000;
     private int chunkSize = 480;
     public bool isMuted = false;
 

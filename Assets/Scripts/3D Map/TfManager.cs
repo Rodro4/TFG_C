@@ -1,153 +1,3 @@
-//using RosSharp.RosBridgeClient;
-//using RosSharp.RosBridgeClient.MessageTypes.Tf2;
-//using System.Collections.Generic;
-//using UnityEngine;
-
-//using UnityVector3 = UnityEngine.Vector3;
-//using UnityQuaternion = UnityEngine.Quaternion;
-
-//using RosVector3 = RosSharp.RosBridgeClient.MessageTypes.Geometry.Vector3;
-//using RosQuaternion = RosSharp.RosBridgeClient.MessageTypes.Geometry.Quaternion;
-//using RosTransformStamped =
-//    RosSharp.RosBridgeClient.MessageTypes.Geometry.TransformStamped;
-
-//public class TfManager : MonoBehaviour
-//{
-//    private RosSocket rosSocket;
-
-//    // child_frame -> TransformStamped
-//    private Dictionary<string, RosTransformStamped> tfTree =
-//        new Dictionary<string, RosTransformStamped>();
-
-//    void Start()
-//    {
-//        RosConnector connector = FindObjectOfType<RosConnector>();
-//        rosSocket = connector.RosSocket;
-
-//        rosSocket.Subscribe<TFMessage>("/tf", ReceiveTf);
-//        rosSocket.Subscribe<TFMessage>("/tf_static", ReceiveTf);
-//    }
-
-//    private void ReceiveTf(TFMessage msg)
-//    {
-//        foreach (var tf in msg.transforms)
-//        {
-//            tfTree[tf.child_frame_id] = tf;
-//        }
-//    }
-
-//    // TRANSFORMACI�N DE PUNTOS
-//    public bool TryTransformPoint(
-//        UnityVector3 pointRos,
-//        string fromFrame,
-//        string toFrame,
-//        out UnityVector3 pointUnity)
-//    {
-//        pointUnity = UnityVector3.zero;
-
-//        if (!BuildChain(fromFrame, toFrame, out List<RosTransformStamped> chain))
-//            return false;
-
-//        UnityVector3 p = pointRos;
-//        UnityQuaternion q = UnityQuaternion.identity;
-
-//        foreach (var tf in chain)
-//        {
-//            UnityVector3 t = RosToUnity(tf.transform.translation);
-//            UnityQuaternion r = RosToUnity(tf.transform.rotation);
-
-//            p = r * p + t;
-//            q = r * q;
-//        }
-
-//        pointUnity = p;
-//        return true;
-//    }
-
-//    // CONSTRUCCI�N DE CADENA TF
-//    private bool BuildChain(
-//        string from,
-//        string to,
-//        out List<RosTransformStamped> chain)
-//    {
-//        chain = new List<RosTransformStamped>();
-//        string current = from;
-
-//        while (current != to)
-//        {
-//            if (!tfTree.ContainsKey(current))
-//                return false;
-
-//            var tf = tfTree[current];
-//            chain.Add(tf);
-//            current = tf.header.frame_id;
-//        }
-
-//        return true;
-//    }
-
-//    // CONVERSI�N ROS -> UNITY
-//    private UnityVector3 RosToUnity(RosVector3 v)
-//    {
-//        return new UnityVector3(
-//            (float)-v.y,
-//            (float)v.z,
-//            (float)v.x
-//        );
-//    }
-
-//    private UnityQuaternion RosToUnity(RosQuaternion q)
-//    {
-//        return new UnityQuaternion(
-//            (float)-q.y,
-//            (float)q.z,
-//            (float)q.x,
-//            (float)-q.w
-//        );
-//    }
-//}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 using RosSharp.RosBridgeClient;
 using RosSharp.RosBridgeClient.MessageTypes.Tf2;
 using System.Collections.Generic;
@@ -193,7 +43,7 @@ public class TfManager : MonoBehaviour
                 buffer[t] = tf;
 
             // limitar memoria (IMPORTANTE)
-            if (buffer.Count > 200)
+            if (buffer.Count > 500)
                 buffer.RemoveAt(0);
         }
     }
@@ -255,7 +105,7 @@ public class TfManager : MonoBehaviour
             if (buffer.Count == 0)
                 return false;
 
-            var tf = GetClosestTf(buffer, time);
+            var tf = GetInterpolatedTf(buffer, time);
 
             chain.Add(tf);
             current = tf.header.frame_id;
@@ -267,25 +117,63 @@ public class TfManager : MonoBehaviour
     // =========================
     // GET TF CLOSEST TO TIME
     // =========================
-    private RosTransformStamped GetClosestTf(
+    private RosTransformStamped GetInterpolatedTf(
         SortedList<double, RosTransformStamped> buffer,
         double time)
     {
-        double bestKey = buffer.Keys[0];
-        double bestDiff = Mathf.Abs((float)(bestKey - time));
+        var keys = buffer.Keys;
 
-        foreach (var k in buffer.Keys)
+        // Casos extremos: fuera del rango del buffer
+        if (time <= keys[0]) return buffer[keys[0]];
+        if (time >= keys[keys.Count - 1]) return buffer[keys[keys.Count - 1]];
+
+        // Búsqueda binaria del índice anterior
+        int lo = 0, hi = keys.Count - 1;
+        while (lo < hi - 1)
         {
-            double diff = Mathf.Abs((float)(k - time));
-
-            if (diff < bestDiff)
-            {
-                bestDiff = diff;
-                bestKey = k;
-            }
+            int mid = (lo + hi) / 2;
+            if (keys[mid] < time) lo = mid;
+            else hi = mid;
         }
 
-        return buffer[bestKey];
+        var tfA = buffer[keys[lo]];
+        var tfB = buffer[keys[hi]];
+
+        double span = keys[hi] - keys[lo];
+        if (span < 1e-9) return tfA; // Idénticos, no dividir por cero
+
+        float t = (float)((time - keys[lo]) / span); // 0..1
+
+        // Interpolar traslación
+        Vector3 transA = RosToUnity(tfA.transform.translation);
+        Vector3 transB = RosToUnity(tfB.transform.translation);
+        Vector3 transInterp = Vector3.Lerp(transA, transB, t);
+
+        // Interpolar rotación (slerp)
+        Quaternion rotA = RosToUnity(tfA.transform.rotation);
+        Quaternion rotB = RosToUnity(tfB.transform.rotation);
+        Quaternion rotInterp = Quaternion.Slerp(rotA, rotB, t);
+
+        // Construir un TransformStamped sintético con los valores interpolados
+        // Reutilizamos la estructura de tfA como base y sobreescribimos transform
+        var result = tfA; // copia de valor (struct dentro de clase)
+
+        result.transform.translation = new RosVector3
+        {
+            x = transInterp.z,   // Unity Z -> ROS X (inverso de RosToUnity)
+            y = -transInterp.x,  // Unity -X -> ROS Y
+            z = transInterp.y    // Unity Y -> ROS Z
+        };
+
+        result.transform.rotation = new RosQuaternion
+        {
+            x =  rotInterp.z,
+            y = -rotInterp.x,
+            z =  rotInterp.y,
+            w = -rotInterp.w
+        };
+
+        return result;
     }
 
     // =========================

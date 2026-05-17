@@ -6,9 +6,9 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class AudioReceiverMobile : MonoBehaviour
 {
-    [Header("Configuración")]
+    [Header("Configuraciï¿½n")]
     public int port = 5004;
-    private int sampleRate = 48000;
+    private int sampleRate = 16000;
     public bool isDeafened = false;
 
     private UdpClient udp;

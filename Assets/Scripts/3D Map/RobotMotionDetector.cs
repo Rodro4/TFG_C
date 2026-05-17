@@ -20,6 +20,9 @@ public class RobotMotionDetector : MonoBehaviour
 
     private bool first = true;
 
+    public float settleTime = 1.0f; // segundos quieto antes de aceptar
+    private float stationaryTimer = 0f;
+
     void Start()
     {
         var connector = FindObjectOfType<RosConnector>();
@@ -65,9 +68,18 @@ public class RobotMotionDetector : MonoBehaviour
 
         float angularSpeed = Quaternion.Angle(rot, lastRotation) / (float)dt;
 
-        isStationary =
-            linearSpeed < linearThreshold &&
-            angularSpeed < angularThreshold;
+        bool currentlyStill = linearSpeed < linearThreshold && angularSpeed < angularThreshold;
+
+        if (currentlyStill)
+        {
+            stationaryTimer += (float)(time - lastTime); // acumular tiempo quieto
+            isStationary = stationaryTimer >= settleTime;
+        }
+        else
+        {
+            stationaryTimer = 0f;
+            isStationary = false;
+        }
 
         lastPosition = pos;
         lastRotation = rot;
