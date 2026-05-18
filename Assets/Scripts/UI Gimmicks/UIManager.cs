@@ -19,6 +19,10 @@ public class UIManager : MonoBehaviour
     public Button muteButton;
     public Button deafenButton;
 
+    [Header("Minimapa")]
+    public MapSubscriber mapSubscriber;
+    public RawImage miniMapImage;
+
     public Sprite micOnSprite;
     public Sprite micOffSprite;
     public Sprite headphonesOnSprite;
@@ -64,6 +68,9 @@ public class UIManager : MonoBehaviour
         var connector = FindObjectOfType<RosConnector>();
         if (connector != null)
             rosSocket = connector.RosSocket;
+
+        if (miniMapImage != null)
+            miniMapImage.texture = null;
     }
 
     // =========================
@@ -214,4 +221,18 @@ public class UIManager : MonoBehaviour
     {
         gameManager.StartGameMode();
     }
+
+    void UpdateMiniMap()
+    {
+        if (mapSubscriber == null || miniMapImage == null)
+            return;
+
+        if (mapSubscriber.MapTexture != null)
+            miniMapImage.texture = mapSubscriber.MapTexture;
+    }
+
+    void Update()
+    {
+        UpdateMiniMap();
+    }  
 }

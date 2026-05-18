@@ -236,6 +236,8 @@ namespace RosSharp.RosBridgeClient
         // Material compartido para todos los cubos (evita crear uno por cubo)
         private Material wallMaterial;
 
+        public Texture2D MapTexture => mapTexture;
+
         void Start()
         {
             wallMaterial = new Material(Shader.Find("Standard"));
