@@ -43,7 +43,7 @@ public class TfManager : MonoBehaviour
                 buffer[t] = tf;
 
             // limitar memoria (IMPORTANTE)
-            if (buffer.Count > 500)
+            if (buffer.Count > 1000)
                 buffer.RemoveAt(0);
         }
     }

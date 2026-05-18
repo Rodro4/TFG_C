@@ -12,6 +12,11 @@ public class Map3DManager : MonoBehaviour
 
     void Start()
     {
+        if (wallMap != null) wallMap.SetActive(true);
+        if (meshMap != null) meshMap.SetActive(true);
+        //if (octoMap != null) octoMap.SetActive(true);
+        if (particleMap != null) particleMap.SetActive(true);
+
         // Estado inicial
         ShowWallMap();
     }

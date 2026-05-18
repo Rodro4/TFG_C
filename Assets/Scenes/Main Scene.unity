@@ -272,7 +272,7 @@ MonoBehaviour:
   isStationary: 0
   linearThreshold: 0.02
   angularThreshold: 0.05
-  settleTime: 0.5
+  settleTime: 1
 --- !u!1001 &11573441
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2916,9 +2916,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78b40093b42c39448b65b8d89d1a79ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  voxelSize: 0.05
+  voxelSize: 0.1
   generateMesh: 1
   meshUpdateInterval: 1
+  rebuildChunkSize: 500
   maxVoxels: 200000
   voxelMaterial: {fileID: 2100000, guid: 3a48fd8e465742841b3660e0ce4d2c68, type: 2}
   PointCloudTopic: /camera/depth_registered/points_decimated
@@ -3941,10 +3942,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PointCloudTopic: /octomap_point_cloud_centers
-  MaxPoints: 400000
-  PointSkip: 10
+  useROS: 1
+  MaxPoints: 1000000
+  PointSkip: 1
+  UpdateInterval: 0.5
+  particleSize: 0.015
+  useHeightColorFallback: 1
   alturaMin: 0
-  alturaMax: 1.25
+  alturaMax: 4
   miGradiente:
     serializedVersion: 2
     key0: {r: 0.23529412, g: 0.23529412, b: 0.23529412, a: 1}
@@ -3975,6 +3980,8 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
+  generateColliders: 0
+  collidersPerFrame: 30
 --- !u!4 &343910370
 Transform:
   m_ObjectHideFlags: 0
@@ -7708,6 +7715,7 @@ MonoBehaviour:
   particleMap: {fileID: 1036854960}
   meshMap: {fileID: 271697780}
   wallMap: {fileID: 497079485}
+  octoMap: {fileID: 343910369}
   wallMaterial: {fileID: 2100000, guid: adc9a36de9c9ce44983c3586fcc50ed6, type: 2}
   fileName: SavedMap
 --- !u!1 &611421416
@@ -9846,7 +9854,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53f4917265306e642a9a731e8de11f61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  androidIP: 192.168.1.144
+  androidIP: 10.169.26.227
   port: 5000
   width: 1080
   height: 720
@@ -12790,10 +12798,10 @@ MonoBehaviour:
   PointSkip: 1
   MaxPoints: 100000
   particleSize: 0.05
-  voxelSize: 0.05
+  voxelSize: 0.1
   maxVoxels: 50000
   generateColliders: 0
-  collidersPerFrame: 50
+  collidersPerFrame: 30
   motionDetector: {fileID: 9659753}
 --- !u!4 &1036854961
 Transform:
@@ -24826,7 +24834,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7868500d2ab2bd34fa30e7f70ec14eef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetIP: 192.168.1.144
+  targetIP: 10.169.26.227
   targetPort: 5001
   isMuted: 0
 --- !u!114 &1941846171
