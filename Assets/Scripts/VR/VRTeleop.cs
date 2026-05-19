@@ -41,7 +41,7 @@ public class VRTeleop : UnityPublisher<Twist>
     public float linearSpeed = 0.5f;
     public float angularSpeed = 1.0f;
 
-    private float publishRate = 20f; // Hz
+    private float publishRate = 5f; // Hz
     private float timeSinceLastPublish = 0f;
 
     [Header("UI")]

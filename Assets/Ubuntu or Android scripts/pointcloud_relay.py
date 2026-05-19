@@ -12,7 +12,7 @@ import struct, time
 INPUT_TOPIC  = "/camera/depth_registered/points"
 OUTPUT_TOPIC = "/camera/depth_registered/points_decimated"
 SKIP         = 10      # publicar 1 de cada N puntos
-MAX_HZ       = 2.0     # maximo 2 publicaciones por segundo
+MAX_HZ       = 2.0     # maximo 2 publicaciones por segundos
 # --------------
 
 pub = None

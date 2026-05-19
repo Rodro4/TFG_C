@@ -3942,11 +3942,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PointCloudTopic: /octomap_point_cloud_centers
-  useROS: 1
+  useROS: 0
   MaxPoints: 1000000
   PointSkip: 1
-  UpdateInterval: 0.5
-  particleSize: 0.015
+  voxelSize: 0.05
+  particleSizeMultiplier: 1.05
+  useCubeMesh: 0
+  cubeMesh: {fileID: -5495902117074765545, guid: 51244943ebdc847fb82a264e687db85a, type: 3}
+  cubeMaterial: {fileID: 2100000, guid: 80b1dd2c4f1a32948a9ef236c9780a20, type: 2}
+  UpdateInterval: 0.1
   useHeightColorFallback: 1
   alturaMin: 0
   alturaMax: 4
@@ -3981,7 +3985,7 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   generateColliders: 0
-  collidersPerFrame: 30
+  collidersPerFrame: 10
 --- !u!4 &343910370
 Transform:
   m_ObjectHideFlags: 0
@@ -9994,7 +9998,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53f4917265306e642a9a731e8de11f61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  androidIP: 10.169.26.227
+  androidIP: 10.169.26.228
   port: 5000
   width: 1080
   height: 720
@@ -22298,13 +22302,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1730386749}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.7071068, y: 0.7071068, z: -0, w: 0}
+  m_LocalRotation: {x: -0.5, y: 0.5, z: -0.5, w: -0.5}
   m_LocalPosition: {x: 2.24, y: 22.5, z: 0}
   m_LocalScale: {x: 0.3, y: 1, z: 0.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 180, z: -90}
+  m_LocalEulerAnglesHint: {x: 90, y: 180, z: -90}
 --- !u!1 &1733461190
 GameObject:
   m_ObjectHideFlags: 0
@@ -25265,7 +25269,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7868500d2ab2bd34fa30e7f70ec14eef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetIP: 10.169.26.227
+  targetIP: 10.169.26.228
   targetPort: 5001
   isMuted: 0
 --- !u!114 &1941846171
