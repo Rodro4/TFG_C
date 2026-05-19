@@ -8,6 +8,7 @@ public class UIManager : MonoBehaviour
     [Header("Image Receiver")]
     public RGBDImageReceiverUDP imageReceiver;
     private bool showingRGB = true;
+    private string cameraModePubId;
 
     [Header("Map Manager")]
     public Map3DManager mapManager;
@@ -68,6 +69,7 @@ public class UIManager : MonoBehaviour
         var connector = FindObjectOfType<RosConnector>();
         if (connector != null)
             rosSocket = connector.RosSocket;
+            cameraModePubId = rosSocket.Advertise<RosSharp.RosBridgeClient.MessageTypes.Std.String>("/camera_stream_mode");
 
         if (miniMapImage != null)
             miniMapImage.texture = null;
@@ -111,7 +113,8 @@ public class UIManager : MonoBehaviour
         if (rosSocket != null)
         {
             var msg = new RosSharp.RosBridgeClient.MessageTypes.Std.String { data = showingRGB ? "rgb" : "depth" };
-            rosSocket.Publish("/camera_stream_mode", msg);
+            if (!string.IsNullOrEmpty(cameraModePubId))
+                rosSocket.Publish(cameraModePubId, msg);
         }
 
         Debug.Log("UIManager: Modo -> " + (showingRGB ? "RGB" : "Depth"));

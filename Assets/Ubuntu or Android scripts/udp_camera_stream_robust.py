@@ -20,8 +20,8 @@ from sensor_msgs.msg import Image
 IP_DESTINO = "10.169.26.139"
 PUERTO_RGB = 5006
 PUERTO_DEPTH = 5007
-ANCHO, ALTO = 1080, 720
-CALIDAD = 50      # 0 a 100
+ANCHO, ALTO = 320, 240
+CALIDAD = 25      # 0 a 100
 MIN_DIST = 0.5    # Metros
 MAX_DIST = 5.0    # Metros
 TIMEOUT_SOCKET = 2.0  # segundos
@@ -37,9 +37,14 @@ class CameraStreamer:
         self.success_count = 0
         self.enable_rgb = True
 	self.enable_depth = False
+	self.last_rgb_time = 0.0
+	self.last_depth_time = 0.0
 
-	rospy.Subscriber("/camera_stream_mode", rospy.AnyMsg, self.on_stream_mode)
-        rospy.loginfo("[CameraStreamer] Inicializando...")
+	#rospy.Subscriber("/camera_stream_mode", rospy.AnyMsg, self.on_stream_mode)
+	from std_msgs.msg import String as RosString
+	rospy.Subscriber("/camera_stream_mode", RosString, self.on_stream_mode)
+	rospy.loginfo("Stream mode: RGB=%s, Depth=%s" % (self.enable_rgb, self.enable_depth))
+        #rospy.loginfo("[CameraStreamer] Inicializando...")
         self.reconnect()
         
         # Suscriptores (estos activan lazy publishing del driver)
@@ -83,7 +88,12 @@ class CameraStreamer:
         if self.sock is None:
             self.reconnect()
             return
-        
+
+	now = time.time()
+	if now - self.last_rgb_time < 0.1:  # max 10 fps
+            return
+	self.last_rgb_time = now        
+
         try:
             # Convertir y redimensionar
             img = self.bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -124,7 +134,12 @@ class CameraStreamer:
         if self.sock is None:
             self.reconnect()
             return
-        
+
+	now = time.time()
+	if now - self.last_depth_time < 0.1:  # max 10 fps
+            return
+	self.last_depth_time = now        
+
         try:
             # Obtener imagen de profundidad en su formato nativo
             depth = self.bridge.imgmsg_to_cv2(msg, msg.encoding)
