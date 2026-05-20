@@ -21,7 +21,7 @@ IP_DESTINO = "10.169.26.139"
 PUERTO_RGB = 5006
 PUERTO_DEPTH = 5007
 ANCHO, ALTO = 320, 240
-CALIDAD = 25      # 0 a 100
+CALIDAD = 30      # 0 a 100
 MIN_DIST = 0.5    # Metros
 MAX_DIST = 5.0    # Metros
 TIMEOUT_SOCKET = 2.0  # segundos
@@ -90,7 +90,7 @@ class CameraStreamer:
             return
 
 	now = time.time()
-	if now - self.last_rgb_time < 0.1:  # max 10 fps
+	if now - self.last_rgb_time < 0.066:
             return
 	self.last_rgb_time = now        
 
@@ -136,7 +136,7 @@ class CameraStreamer:
             return
 
 	now = time.time()
-	if now - self.last_depth_time < 0.1:  # max 10 fps
+	if now - self.last_depth_time < 0.066:
             return
 	self.last_depth_time = now        
 

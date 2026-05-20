@@ -81,23 +81,42 @@ public class MapSaverLoaderManager : MonoBehaviour
     [ContextMenu("Guardar Walls")]
     public void SaveWalls()
     {
-        List<WallData> data = new();
-        int index = 0;
-
-        foreach (Transform child in wallMap.transform)
+        if (wallMap == null || wallMap.mapParent == null)
         {
-            if (index++ == 0) continue;
-            if (child.GetComponent<Collider>() != null &&
-                child.GetComponent<ParticleMap>() == null &&
-                child.GetComponent<MeshMap>() == null)
+            Debug.LogError("mapParent no asignado");
+            return;
+        }
+
+        List<WallData> data = new();
+
+        foreach (Transform child in wallMap.mapParent)
+        {
+            // Solo guardar cubos activos
+            if (!child.gameObject.activeSelf)
+                continue;
+
+            // Opcional: solo cubes
+            if (child.name.Contains("Cube"))
             {
-                data.Add(new WallData { pos = child.position, rot = child.rotation, scale = child.localScale });
+                data.Add(new WallData
+                {
+                    pos = child.position,
+                    rot = child.rotation,
+                    scale = child.localScale
+                });
             }
         }
 
-        File.WriteAllText(AssetPath("_walls.json"), JsonUtility.ToJson(new WallWrapper { walls = data }, true));
+        string json = JsonUtility.ToJson(
+            new WallWrapper { walls = data },
+            true
+        );
+
+        File.WriteAllText(AssetPath("_walls.json"), json);
+
         Debug.Log($"Walls guardadas: {data.Count}");
     }
+
 
     [ContextMenu("Cargar Walls")]
     public void LoadWalls()

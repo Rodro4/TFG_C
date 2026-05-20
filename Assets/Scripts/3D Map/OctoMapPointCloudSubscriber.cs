@@ -6,242 +6,152 @@ using RosSharp.RosBridgeClient.MessageTypes.Sensor;
 
 public class OctoMapPointCloudSubscriber : MonoBehaviour
 {
-    // =====================================================================
-    // INSPECTOR
-    // =====================================================================
+    // ─── Inspector ───────────────────────────────────────────────────────
 
     [Header("ROS")]
-    public string PointCloudTopic = "/octomap_point_cloud_centers";
+    [Tooltip("Desactiva para cargar un mapa guardado sin conectar a ROS.")]
     public bool useROS = true;
+    public string pointCloudTopic = "/octomap_point_cloud_centers";
 
     [Header("Mapa")]
     [Tooltip("Máximo número de voxels acumulados en memoria.")]
-    public int MaxPoints = 300000;
+    public int maxVoxels = 200000;
 
-    [Tooltip("Usar 1 de cada N puntos del mensaje (1 = todos, 2 = la mitad...).")]
-    public int PointSkip = 1;
+    [Tooltip("Saltar 1 de cada N puntos del mensaje. 1 = todos.")]
+    public int pointSkip = 1;
 
     [Header("Visual")]
-    [Tooltip("Debe coincidir con _resolution del octomap_server (por defecto 0.05).")]
+    [Tooltip("Debe coincidir con _resolution del octomap_server.")]
     public float voxelSize = 0.05f;
 
-    [Tooltip("Multiplicador sobre voxelSize para el tamaño visual. 1.1 cierra huecos entre voxels.")]
-    [Range(0.5f, 2f)]
-    public float particleSizeMultiplier = 1.1f;
+    [Tooltip("Material con 'Enable GPU Instancing' activado (Inspector → Material → Enable Instancing).")]
+    public Material voxelMaterial;
 
-    [Header("Modo de render")]
-    [Tooltip("True = cubos instanciados en GPU (más sólido, sin huecos). False = Particle System.")]
-    public bool useCubeMesh = true;
-
-    [Tooltip("Mesh del cubo. Se genera automáticamente si se deja vacío.")]
-    public Mesh cubeMesh;
-
-    [Tooltip("Material con GPU Instancing activado. Ver instrucciones en el script.")]
-    public Material cubeMaterial;
+    [Header("Color de fallback (si el mensaje no trae RGB)")]
+    public bool useHeightColor = true;
+    public float heightMin = 0f;
+    public float heightMax = 1.5f;
+    public Gradient heightGradient;
 
     [Header("Timing")]
-    [Tooltip("Intervalo en segundos entre actualizaciones del render. 0.1 es un buen balance.")]
-    public float UpdateInterval = 0.1f;
+    [Tooltip("Segundos entre aplicaciones de datos nuevos al mapa.")]
+    public float updateInterval = 0.2f;
 
-    [Header("Color de fallback (si el mensaje no trae campo RGB)")]
-    public bool useHeightColorFallback = true;
-    public float alturaMin = 0f;
-    public float alturaMax = 1.5f;
-    public Gradient miGradiente;
+    // ─── Privados ────────────────────────────────────────────────────────
 
-    [Header("Colliders")]
-    [Tooltip("Genera BoxColliders por voxel. Muy costoso con muchos puntos.")]
-    public bool generateColliders = false;
-    [Tooltip("Colliders creados por frame para repartir la carga.")]
-    public int collidersPerFrame = 10;
-
-    // =====================================================================
-    // PRIVADOS
-    // =====================================================================
-
-    private RosSocket rosSocket;
-
-    // Mapa acumulativo sin duplicados.
-    // Clave: posición cuantizada con FloorToInt a la rejilla del octomap.
-    // Valor: color RGB del voxel.
+    // Mapa acumulativo: clave = posición cuantizada, valor = color
     private Dictionary<Vector3Int, Color32> voxelMap =
-        new Dictionary<Vector3Int, Color32>(300000);
+        new Dictionary<Vector3Int, Color32>();
 
-    // Double-buffer: el hilo de ROS escribe aquí, el hilo principal lee.
+    // Double-buffer: ROS escribe aquí, Update() lee
     private readonly object dataLock = new object();
-    private List<Vector3Int> pendingKeys   = new List<Vector3Int>(4096);
-    private List<Color32>    pendingColors = new List<Color32>(4096);
+    private List<Vector3Int> pendingKeys   = new List<Vector3Int>();
+    private List<Color32>    pendingColors = new List<Color32>();
     private bool dataReady = false;
 
-    // Particle System
-    private ParticleSystem ps;
-    private ParticleSystem.Particle[] particles;
+    // Render cache: se reconstruye solo cuando el mapa cambia
+    private Matrix4x4[] matrixCache;
+    private Vector4[]   colorCache;
+    private int         cachedCount = 0;
+    private bool        renderCacheDirty = false;
 
-    // GPU Instanced
-    private Matrix4x4[]          instMatrices   = new Matrix4x4[1023];
-    private Vector4[]             instColors     = new Vector4[1023];
+    // Batch de 1023 elementos (límite de DrawMeshInstanced)
+    private readonly Matrix4x4[] batchMatrices = new Matrix4x4[1023];
+    private readonly Vector4[]   batchColors   = new Vector4[1023];
     private MaterialPropertyBlock mpb;
+    private Mesh cubeMesh;
 
-    // Colliders
-    private Queue<Vector3Int> pendingColliderKeys = new Queue<Vector3Int>();
-    private List<GameObject>  colliderObjects     = new List<GameObject>();
+    // Colliders (post-bake)
+    private List<GameObject> colliderObjects = new List<GameObject>();
 
     private float timer = 0f;
 
-    private bool mapDirty = true;
-
-    // =====================================================================
-    // UNITY LIFECYCLE
-    // =====================================================================
+    // ─── Unity lifecycle ─────────────────────────────────────────────────
 
     void Start()
     {
-        InitRendering();
+        cubeMesh = BuildCubeMesh();
+        mpb      = new MaterialPropertyBlock();
 
-        if (!useROS) return;
+        // Prealocar cache al tamaño máximo (cero allocations en Update)
+        matrixCache = new Matrix4x4[maxVoxels];
+        colorCache  = new Vector4[maxVoxels];
 
-        var rosConnector = FindObjectOfType<RosConnector>();
-        if (rosConnector == null)
+        if (voxelMaterial != null)
+            voxelMaterial.enableInstancing = true;
+        else
+            Debug.LogWarning("[OctoMap] Asigna un Material con GPU Instancing activado.");
+
+        if (!useROS)
         {
-            Debug.LogError("[OctoMap] RosConnector no encontrado en la escena.");
+            Debug.Log("[OctoMap] useROS=false: modo offline, carga un mapa guardado.");
             return;
         }
 
-        rosSocket = rosConnector.RosSocket;
-        rosSocket.Subscribe<PointCloud2>(PointCloudTopic, ReceivePointCloud, 0);
-        Debug.Log("[OctoMap] Suscrito a " + PointCloudTopic);
+        var connector = FindObjectOfType<RosConnector>();
+        if (connector == null)
+        {
+            Debug.LogError("[OctoMap] RosConnector no encontrado.");
+            return;
+        }
+
+        connector.RosSocket.Subscribe<PointCloud2>(pointCloudTopic, OnPointCloudReceived, 0);
+        Debug.Log("[OctoMap] Suscrito a " + pointCloudTopic);
     }
 
     void Update()
     {
-        timer += Time.deltaTime;
-
-        if (timer >= UpdateInterval)
+        // Aplicar datos nuevos cada updateInterval segundos (solo si ROS activo)
+        if (useROS)
         {
-            timer = 0f;
-
-            if (dataReady)
+            timer += Time.deltaTime;
+            if (timer >= updateInterval)
             {
-                ApplyPendingData();
+                timer = 0f;
+                if (dataReady)
+                    ApplyPendingData();
             }
         }
 
-        // GPU instancing necesita draw EVERY FRAME
-        if (useCubeMesh)
-        {
-            RenderInstanced();
-        }
-        else
-        {
-            // ParticleSystem sí puede cachearse
-            if (mapDirty)
-            {
-                RenderParticles();
-                mapDirty = false;
-            }
-        }
+        // Reconstruir cache solo cuando el mapa cambió
+        if (renderCacheDirty)
+            RebuildRenderCache();
 
-        if (generateColliders)
-            GenerateCollidersBatch();
+        // Dibujar cada frame (GPU instancing lo requiere)
+        DrawInstanced();
     }
 
-    void OnDestroy()
+    void OnDestroy() => ClearMap();
+
+    // ─── ROS callback (hilo secundario de rosbridge) ──────────────────────
+
+    private void OnPointCloudReceived(PointCloud2 msg)
     {
-        ClearMap();
-    }
-
-    // =====================================================================
-    // INIT RENDERING
-    // =====================================================================
-
-    void InitRendering()
-    {
-        if (cubeMesh == null)
-            cubeMesh = BuildDefaultCubeMesh();
-
-        if (!useCubeMesh)
-        {
-            // --- Particle System con Mesh cube ---
-            ps = GetComponent<ParticleSystem>();
-            if (ps == null) ps = gameObject.AddComponent<ParticleSystem>();
-
-            var main = ps.main;
-            main.maxParticles    = MaxPoints;
-            main.loop            = false;
-            main.playOnAwake     = false;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.startLifetime   = float.MaxValue;
-            main.startSize       = voxelSize * particleSizeMultiplier;
-
-            var emission = ps.emission;
-            emission.enabled = false;
-
-            var r = ps.GetComponent<ParticleSystemRenderer>();
-            r.renderMode = ParticleSystemRenderMode.Mesh;
-            r.mesh = cubeMesh;
-
-            if (r.sharedMaterial == null)
-                r.sharedMaterial = new Material(Shader.Find("Particles/Standard Unlit"));
-
-            particles = new ParticleSystem.Particle[MaxPoints];
-        }
-        else
-        {
-            // --- GPU Instanced ---
-            mpb = new MaterialPropertyBlock();
-
-            if (cubeMaterial == null)
-            {
-                cubeMaterial = new Material(Shader.Find("Standard"));
-                cubeMaterial.enableInstancing = true;
-                Debug.LogWarning("[OctoMap] cubeMaterial no asignado. " +
-                    "El color por voxel requiere el shader Custom/InstancedVoxel. " +
-                    "Ver instrucciones en el script.");
-            }
-            cubeMaterial.enableInstancing = true;
-        }
-    }
-
-    static Mesh BuildDefaultCubeMesh()
-    {
-        GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        Mesh m = temp.GetComponent<MeshFilter>().sharedMesh;
-        Destroy(temp);
-        return m;
-    }
-
-    // =====================================================================
-    // ROS CALLBACK — hilo secundario de rosbridge
-    // =====================================================================
-
-    private void ReceivePointCloud(PointCloud2 msg)
-    {
-        int pointStep   = (int)msg.point_step;
-        int totalPoints = (int)(msg.width * msg.height);
+        int step  = (int)msg.point_step;
+        int total = (int)(msg.width * msg.height);
 
         int xOff = -1, yOff = -1, zOff = -1, rgbOff = -1;
-        foreach (var field in msg.fields)
+        foreach (var f in msg.fields)
         {
-            switch (field.name)
+            switch (f.name)
             {
-                case "x":    xOff   = (int)field.offset; break;
-                case "y":    yOff   = (int)field.offset; break;
-                case "z":    zOff   = (int)field.offset; break;
+                case "x":    xOff   = (int)f.offset; break;
+                case "y":    yOff   = (int)f.offset; break;
+                case "z":    zOff   = (int)f.offset; break;
                 case "rgb":
-                case "rgba": rgbOff = (int)field.offset; break;
+                case "rgba": rgbOff = (int)f.offset; break;
             }
         }
+        if (xOff < 0 || yOff < 0 || zOff < 0) return;
 
-        if (xOff == -1 || yOff == -1 || zOff == -1) return;
+        bool hasColor = rgbOff >= 0;
 
-        bool hasColor = rgbOff != -1;
+        var localKeys   = new List<Vector3Int>(2048);
+        var localColors = new List<Color32>(2048);
 
-        var localKeys   = new List<Vector3Int>(4096);
-        var localColors = new List<Color32>(4096);
-
-        for (int i = 0; i < totalPoints; i += PointSkip)
+        for (int i = 0; i < total; i += pointSkip)
         {
-            int idx = i * pointStep;
+            int idx = i * step;
 
             float rx = BitConverter.ToSingle(msg.data, idx + xOff);
             float ry = BitConverter.ToSingle(msg.data, idx + yOff);
@@ -249,32 +159,29 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
 
             if (float.IsNaN(rx) || float.IsNaN(ry) || float.IsNaN(rz)) continue;
 
-            // ROS -> Unity:  X->Z,  Y->X,  Z->Y
+            // ROS (X adelante, Y izquierda, Z arriba) → Unity (X derecha, Y arriba, Z adelante)
             Vector3 unityPos = new Vector3(-ry, rz, rx);
 
-            // FloorToInt evita el aliasing de RoundToInt en rejillas espaciales.
+            // FloorToInt: más estable que RoundToInt en rejillas espaciales
             Vector3Int key = new Vector3Int(
                 Mathf.FloorToInt(unityPos.x / voxelSize),
                 Mathf.FloorToInt(unityPos.y / voxelSize),
-                Mathf.FloorToInt(unityPos.z / voxelSize)
-            );
+                Mathf.FloorToInt(unityPos.z / voxelSize));
 
             Color32 color;
             if (hasColor)
             {
-                // ROS empaqueta el color como 0x00RRGGBB en little-endian:
-                // byte[offset+0] = B, byte[offset+1] = G, byte[offset+2] = R
+                // ROS empaqueta RGB little-endian: byte0=B, byte1=G, byte2=R
                 byte b = msg.data[idx + rgbOff + 0];
                 byte g = msg.data[idx + rgbOff + 1];
                 byte r = msg.data[idx + rgbOff + 2];
                 color = new Color32(r, g, b, 255);
             }
-            else if (useHeightColorFallback)
+            else if (useHeightColor)
             {
-                float t = Mathf.Clamp01(Mathf.InverseLerp(alturaMin, alturaMax, rz));
-                Color c = miGradiente.Evaluate(t);
-                c.a = 1f;
-                color = (Color32)c;
+                float t = Mathf.Clamp01(Mathf.InverseLerp(heightMin, heightMax, rz));
+                color   = (Color32)heightGradient.Evaluate(t);
+                color.a = 255;
             }
             else
             {
@@ -293,11 +200,9 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
         }
     }
 
-    // =====================================================================
-    // APPLY - hilo principal
-    // =====================================================================
+    // ─── Aplicar datos al mapa (hilo principal) ───────────────────────────
 
-    void ApplyPendingData()
+    private void ApplyPendingData()
     {
         List<Vector3Int> keys;
         List<Color32>    cols;
@@ -309,169 +214,147 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
             dataReady = false;
         }
 
-        int count = keys.Count;
+        bool changed = false;
 
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < keys.Count; i++)
         {
-            if (voxelMap.Count >= MaxPoints && !voxelMap.ContainsKey(keys[i]))
-                break; // mapa lleno, no añadir nuevos
+            if (voxelMap.Count >= maxVoxels && !voxelMap.ContainsKey(keys[i]))
+                break;
 
-            bool isNew = !voxelMap.ContainsKey(keys[i]);
-
-            // Actualizar siempre el color (octomap puede re-colorear voxels ya vistos)
             voxelMap[keys[i]] = cols[i];
-
-            if (isNew && generateColliders)
-                pendingColliderKeys.Enqueue(keys[i]);
+            changed = true;
         }
 
-        mapDirty = true;
+        if (changed)
+            renderCacheDirty = true;
     }
 
-    // =====================================================================
-    // RENDER - PARTICLE SYSTEM
-    // =====================================================================
+    // ─── Reconstruir cache (solo cuando renderCacheDirty == true) ─────────
 
-    void RenderParticles()
+    private void RebuildRenderCache()
     {
-        if (ps == null) return;
-
-        float size = voxelSize * particleSizeMultiplier;
-        int   n    = 0;
+        int n = 0;
 
         foreach (var kv in voxelMap)
         {
-            if (n >= MaxPoints) break;
+            if (n >= maxVoxels) break;
 
-            // Centro del voxel: (key + 0.5) * voxelSize
-            particles[n].position = new Vector3(
+            Vector3 pos = new Vector3(
                 (kv.Key.x + 0.5f) * voxelSize,
                 (kv.Key.y + 0.5f) * voxelSize,
-                (kv.Key.z + 0.5f) * voxelSize
-            );
-            particles[n].startColor        = kv.Value;
-            particles[n].startSize         = size;
-            particles[n].remainingLifetime = float.MaxValue;
+                (kv.Key.z + 0.5f) * voxelSize);
+
+            matrixCache[n] = Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * voxelSize);
+
+            Color32 c = kv.Value;
+            colorCache[n] = new Vector4(c.r / 255f, c.g / 255f, c.b / 255f, 1f);
+
             n++;
         }
 
-        ps.SetParticles(particles, n);
+        cachedCount      = n;
+        renderCacheDirty = false;
     }
 
-    // =====================================================================
-    // RENDER - GPU INSTANCED MESH
-    // =====================================================================
+    // ─── Dibujar instancias (cada frame) ─────────────────────────────────
 
-    void RenderInstanced()
+    private void DrawInstanced()
     {
-        if (voxelMap.Count == 0) return;
+        if (cachedCount == 0 || cubeMesh == null || voxelMaterial == null) return;
 
-        if (cubeMesh == null || cubeMaterial == null) return;
+        int drawn = 0;
+        while (drawn < cachedCount)
+        {
+            int batchSize = Mathf.Min(1023, cachedCount - drawn);
 
-        float size  = voxelSize * particleSizeMultiplier;
-        int   index = 0;
+            Array.Copy(matrixCache, drawn, batchMatrices, 0, batchSize);
+            Array.Copy(colorCache,  drawn, batchColors,   0, batchSize);
+
+            mpb.SetVectorArray("_Color", batchColors);
+            Graphics.DrawMeshInstanced(cubeMesh, 0, voxelMaterial, batchMatrices, batchSize, mpb);
+
+            drawn += batchSize;
+        }
+    }
+
+    // ─── Colliders (post-bake) ────────────────────────────────────────────
+
+    /// <summary>
+    /// Genera BoxColliders para todos los voxels actuales.
+    /// Usar cuando el mapa esté completo, no en tiempo real.
+    /// Accesible desde clic derecho en el componente (Context Menu).
+    /// </summary>
+    [ContextMenu("Generar Colliders")]
+    public void BakeColliders()
+    {
+        foreach (var go in colliderObjects)
+            if (go != null) Destroy(go);
+        colliderObjects.Clear();
+
+        if (voxelMap.Count == 0)
+        {
+            Debug.LogWarning("[OctoMap] BakeColliders: el mapa está vacío.");
+            return;
+        }
+
+        GameObject parent = new GameObject("OctoMap_Colliders");
+        parent.transform.SetParent(transform);
 
         foreach (var kv in voxelMap)
         {
             Vector3 pos = new Vector3(
                 (kv.Key.x + 0.5f) * voxelSize,
                 (kv.Key.y + 0.5f) * voxelSize,
-                (kv.Key.z + 0.5f) * voxelSize
-            );
+                (kv.Key.z + 0.5f) * voxelSize);
 
-            instMatrices[index] = Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * size);
-
-            Color32 c = kv.Value;
-            instColors[index] = new Vector4(c.r / 255f, c.g / 255f, c.b / 255f, 1f);
-
-            index++;
-
-            if (index == 1023)
-            {
-                FlushBatch(index);
-                index = 0;
-            }
-        }
-
-        if (index > 0)
-            FlushBatch(index);
-    }
-
-    void FlushBatch(int count)
-    {
-    //     mpb.SetVectorArray("_Color", instColors);
-    //     Graphics.DrawMeshInstanced(cubeMesh, 0, cubeMaterial, instMatrices, count, mpb);
-    Vector4[] colorsToSend = new Vector4[count];
-    Matrix4x4[] matricesToSend = new Matrix4x4[count];
-
-    Array.Copy(instColors, colorsToSend, count);
-    Array.Copy(instMatrices, matricesToSend, count);
-
-    mpb.SetVectorArray("_Color", colorsToSend);
-    Graphics.DrawMeshInstanced(cubeMesh, 0, cubeMaterial, matricesToSend, count, mpb);
-    }
-
-    // =====================================================================
-    // COLLIDERS - progresivo para no bloquear frames
-    // =====================================================================
-
-    void GenerateCollidersBatch()
-    {
-        int created = 0;
-        while (pendingColliderKeys.Count > 0 && created < collidersPerFrame)
-        {
-            Vector3Int key = pendingColliderKeys.Dequeue();
-
-            GameObject go = new GameObject("OctoCollider");
-            go.transform.SetParent(transform);
-            go.transform.position = new Vector3(
-                (key.x + 0.5f) * voxelSize,
-                (key.y + 0.5f) * voxelSize,
-                (key.z + 0.5f) * voxelSize
-            );
+            GameObject go = new GameObject("Col");
+            go.transform.SetParent(parent.transform);
+            go.transform.position = pos;
             go.AddComponent<BoxCollider>().size = Vector3.one * voxelSize;
             colliderObjects.Add(go);
-            created++;
         }
+
+        Debug.Log($"[OctoMap] BakeColliders: {colliderObjects.Count} colliders generados.");
     }
 
-    // =====================================================================
-    // API PÚBLICA
-    // =====================================================================
+    // ─── API pública ──────────────────────────────────────────────────────
 
-    public int GetPointCount() => voxelMap.Count;
+    public int VoxelCount => voxelMap.Count;
 
+    [ContextMenu("Limpiar Mapa")]
     public void ClearMap()
     {
         voxelMap.Clear();
-        pendingColliderKeys.Clear();
-
-        if (ps != null)
-            ps.SetParticles(new ParticleSystem.Particle[0], 0);
+        cachedCount      = 0;
+        renderCacheDirty = false;
 
         foreach (var go in colliderObjects)
             if (go != null) Destroy(go);
-
         colliderObjects.Clear();
+
         Debug.Log("[OctoMap] Mapa limpiado.");
     }
 
-    // Compatibilidad con MapSaverLoaderManager
+    // ─── Save / Load (usado por MapSaverLoaderManager) ───────────────────
+    //
+    // IMPORTANTE: se guardan posiciones de mundo (float), NO las claves
+    // cuantizadas, para que el mapa sea independiente de voxelSize.
+    // Al cargar se re-cuantiza con el voxelSize actual del componente.
+
     public (Vector3[] pos, Color32[] col, int count) GetCurrentPoints()
     {
-        int n   = Mathf.Min(voxelMap.Count, MaxPoints);
+        int n   = voxelMap.Count;
         var pos = new Vector3[n];
         var col = new Color32[n];
         int i   = 0;
 
         foreach (var kv in voxelMap)
         {
-            if (i >= n) break;
+            // Centro geométrico del voxel en espacio mundo
             pos[i] = new Vector3(
                 (kv.Key.x + 0.5f) * voxelSize,
                 (kv.Key.y + 0.5f) * voxelSize,
-                (kv.Key.z + 0.5f) * voxelSize
-            );
+                (kv.Key.z + 0.5f) * voxelSize);
             col[i] = kv.Value;
             i++;
         }
@@ -482,20 +365,31 @@ public class OctoMapPointCloudSubscriber : MonoBehaviour
     public void LoadPoints(Vector3[] pos, Color32[] col, int count)
     {
         voxelMap.Clear();
-        int n = Mathf.Min(count, MaxPoints);
+        int n = Mathf.Min(count, maxVoxels);
 
         for (int i = 0; i < n; i++)
         {
-            Vector3Int key = new Vector3Int(
+            // Re-cuantizar con el voxelSize actual
+            // (el centro guardado - 0.5*voxelSize queda en el origen del voxel,
+            //  FloorToInt lo redondea a la celda correcta)
+            var key = new Vector3Int(
                 Mathf.FloorToInt(pos[i].x / voxelSize),
                 Mathf.FloorToInt(pos[i].y / voxelSize),
-                Mathf.FloorToInt(pos[i].z / voxelSize)
-            );
+                Mathf.FloorToInt(pos[i].z / voxelSize));
             voxelMap[key] = col[i];
         }
 
-        mapDirty = true;
-        
-        Debug.Log("[OctoMap] " + voxelMap.Count + " puntos cargados.");
+        renderCacheDirty = true;
+        Debug.Log($"[OctoMap] {voxelMap.Count} puntos cargados.");
+    }
+
+    // ─── Utilidades ───────────────────────────────────────────────────────
+
+    private static Mesh BuildCubeMesh()
+    {
+        GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Mesh m = temp.GetComponent<MeshFilter>().sharedMesh;
+        Destroy(temp);
+        return m;
     }
 }
