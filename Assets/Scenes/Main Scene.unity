@@ -168,6 +168,8 @@ GameObject:
   m_Component:
   - component: {fileID: 3431242}
   - component: {fileID: 3431241}
+  - component: {fileID: 3431244}
+  - component: {fileID: 3431243}
   m_Layer: 0
   m_Name: turtlebot
   m_TagString: Untagged
@@ -207,6 +209,49 @@ Transform:
   - {fileID: 1758278031}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3431243
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3431240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 090f7a0947d84244098068f59c22df9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  inputActions: {fileID: -944628639613478452, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  robotMoveActionName: Move Robot
+  linearSpeed: 0.5
+  angularSpeed: 90
+  offlineMode: 1
+--- !u!143 &3431244
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3431240}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Height: 0.1
+  m_Radius: 0.1
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!1 &9659750
 GameObject:
   m_ObjectHideFlags: 0
@@ -2922,7 +2967,7 @@ MonoBehaviour:
   rebuildChunkSize: 500
   maxVoxels: 200000
   voxelMaterial: {fileID: 2100000, guid: 3a48fd8e465742841b3660e0ce4d2c68, type: 2}
-  PointCloudTopic: /camera/depth_registered/points_decimated
+  PointCloudTopic: /camera/depth/points
   useROS: 0
   skip: 1
   enableCollider: 0
@@ -9993,10 +10038,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53f4917265306e642a9a731e8de11f61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  androidIP: 10.169.26.228
+  androidIP: 192.168.1.144
   port: 5000
-  width: 320
-  height: 240
+  width: 1080
+  height: 720
   quality: 30
   frameInterval: 0.066
   cam: {fileID: 1762222793}
@@ -11686,7 +11731,7 @@ MonoBehaviour:
   SecondsTimeout: 10
   Serializer: 0
   protocol: 0
-  RosBridgeServerUrl: ws://10.169.26.172:9090
+  RosBridgeServerUrl: ws://192.168.1.156:9090
 --- !u!4 &978715114
 Transform:
   m_ObjectHideFlags: 0
@@ -12904,7 +12949,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e872b62d4d462404e90b23d1f74b38bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PointCloudTopic: /camera/depth_registered/points_decimated
+  PointCloudTopic: /camera/depth/points
   useROS: 0
   PointSkip: 1
   MaxPoints: 100000
@@ -25264,7 +25309,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7868500d2ab2bd34fa30e7f70ec14eef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetIP: 10.169.26.228
+  targetIP: 192.168.1.144
   targetPort: 5001
   isMuted: 0
 --- !u!114 &1941846171

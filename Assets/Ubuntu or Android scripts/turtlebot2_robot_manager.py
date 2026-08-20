@@ -1,18 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-turtlebot2_robot_manager.py
-Servicios y publishers centralizados para el panel de control de Unity.
-
-Servicios ROS expuestos:
-  /reset_slam       â†’ Reinicia gmapping + odometrÃ­a
-  /reset_odometry   â†’ Solo reinicia odometrÃ­a (sin tocar SLAM)
-  /set_motors       â†’ Enciende/apaga motores (std_srvs/SetBool)
-
-Publishers:
-  /robot_status     â†’ std_msgs/String con JSON: baterÃ­a, velocidad, estado motores
-"""
-
 import rospy
 import os
 import json
@@ -25,9 +10,9 @@ from kobuki_msgs.msg import MotorPower, SensorState
 from nav_msgs.msg import Odometry
 
 # --- CONFIG ---
-STATUS_RATE_HZ   = 1.0   # Frecuencia de publicaciÃ³n del estado
-VMIN             = 13.5  # Voltaje mÃ­nimo de la baterÃ­a (0%)
-VMAX             = 16.3  # Voltaje mÃ¡ximo de la baterÃ­a (100%)
+STATUS_RATE_HZ   = 1.0
+VMIN             = 13.5
+VMAX             = 16.3
 # --------------
 
 class RobotManager:
@@ -47,7 +32,7 @@ class RobotManager:
             '/mobile_base/commands/motor_power',
             MotorPower, queue_size=1)
 
-        # Publisher para resetear odometrÃ­a
+        # Publisher para resetear odometri­a
         self.odom_reset_pub = rospy.Publisher(
             '/mobile_base/commands/reset_odometry',
             EmptyMsg, queue_size=1)
@@ -62,12 +47,12 @@ class RobotManager:
         rospy.Service('/reset_odometry', Empty,   self._srv_reset_odometry)
         rospy.Service('/set_motors',     SetBool, self._srv_set_motors)
 
-        # Timer de publicaciÃ³n de estado
+        # Timer de publicacion de estado
         rospy.Timer(rospy.Duration(1.0 / STATUS_RATE_HZ), self._publish_status)
 
         rospy.loginfo("[RobotManager] Listo. Servicios: /reset_slam, /reset_odometry, /set_motors")
 
-    # â”€â”€â”€ CALLBACKS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # CALLBACKS
     def _cb_sensor(self, msg):
         self.battery_voltage = msg.battery / 10.0
         p = (self.battery_voltage - VMIN) / (VMAX - VMIN) * 100.0
@@ -79,10 +64,10 @@ class RobotManager:
         self.linear_speed  = (vx**2 + vy**2) ** 0.5
         self.angular_speed = abs(msg.twist.twist.angular.z)
 
-    # â”€â”€â”€ SERVICIOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # SERVICIOS
     def _srv_reset_slam(self, req):
         rospy.loginfo("[RobotManager] Reiniciando SLAM + odometrÃ­a...")
-        # 1. Resetear odometrÃ­a del hardware
+        # 1. Resetear odometri­a del hardware
         rospy.sleep(0.2)
         self.odom_reset_pub.publish(EmptyMsg())
         # 2. Matar y relanzar gmapping
@@ -100,10 +85,9 @@ class RobotManager:
         return EmptyResponse()
 
     def _srv_set_motors(self, req):
-        """req.data = True â†’ motores ON, False â†’ motores OFF"""
         state = MotorPower()
         state.state = MotorPower.ON if req.data else MotorPower.OFF
-        # Publicar varias veces para asegurar recepciÃ³n
+        # Publicar varias veces para asegurar recepcion
         for _ in range(3):
             self.motor_pub.publish(state)
             rospy.sleep(0.05)
@@ -112,7 +96,7 @@ class RobotManager:
         rospy.loginfo("[RobotManager] Motores -> %s" % label)
         return SetBoolResponse(success=True, message="Motors " + label)
 
-    # â”€â”€â”€ STATUS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # STATUS
     def _publish_status(self, event):
         status = {
             "battery_v":       round(self.battery_voltage, 2),
