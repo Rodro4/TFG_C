@@ -60,7 +60,7 @@ En Unity: asignar la IP del robot en `RosConnector`, conectar el visor y ejecuta
 
 ## Documentación
 
-Las memorias (`TFG_C.tex` y `TFG_V.tex`) describen en detalle la arquitectura, las decisiones de diseño, los experimentos realizados y los problemas encontrados durante el desarrollo.
+Las memorias (`MEMORIA_TFG_VIDEOJUEGOS.pdf` y `MEMORIA_TFG_COMPUTADORES.pdf`) describen en detalle la arquitectura, las decisiones de diseño, los experimentos realizados y los problemas encontrados durante el desarrollo.
 
 ## Autor
 
